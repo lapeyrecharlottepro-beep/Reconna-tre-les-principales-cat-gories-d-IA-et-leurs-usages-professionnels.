@@ -1,0 +1,14 @@
+{
+  "_notice": "Personnages fictifs à usage pédagogique. Seules des informations professionnelles sont stockées.",
+  "employees": [
+    { "id": "lea", "firstName": "Léa", "role": "Dirigeante et fondatrice", "department": "Direction", "responsibilities": ["Stratégie", "Engagements au nom de VERTEO", "Décision sur les expérimentations IA"] },
+    { "id": "samia", "firstName": "Samia", "role": "Responsable commerciale", "department": "Commercial et relation client", "manager": "Léa", "responsibilities": ["Politique commerciale", "Grands comptes", "Validation des remises supérieures à 5 %"] },
+    { "id": "eliott", "firstName": "Eliott", "role": "Chargé de clientèle", "department": "Commercial et relation client", "manager": "Samia", "responsibilities": ["Réponses écrites aux demandes clients", "Suivi du compte Les Jardins de Lise", "Validation des brouillons produits par l'IA"] },
+    { "id": "julia", "firstName": "Julia", "role": "Référente technique", "department": "Bureau technique et éco-conception", "manager": "Léa", "responsibilities": ["Fiches techniques produits", "Arbitrage des questions techniques", "Éco-conception sur mesure"] },
+    { "id": "marc", "firstName": "Marc", "role": "Responsable de production", "department": "Production (atelier)", "manager": "Léa", "responsibilities": ["Planning de production", "Capacités et délais de fabrication"] },
+    { "id": "hugo", "firstName": "Hugo", "role": "Responsable logistique", "department": "Logistique", "manager": "Léa", "responsibilities": ["Stocks", "Préparation des commandes", "Expéditions"] },
+    { "id": "nadia", "firstName": "Nadia", "role": "Responsable RH", "department": "Ressources humaines et administration", "manager": "Léa", "responsibilities": ["Recrutement", "Intégration", "Formation", "Paie"] },
+    { "id": "thomas", "firstName": "Thomas", "role": "Contrôleur de gestion", "department": "Finance et contrôle de gestion", "manager": "Léa", "responsibilities": ["Budget", "Tableaux de bord", "Suivi des marges"] },
+    { "id": "ines", "firstName": "Inès", "role": "Responsable qualité et RSE", "department": "Qualité et RSE", "manager": "Léa", "responsibilities": ["Certifications", "Registre qualité", "Conformité des usages de l'IA"] }
+  ]
+}

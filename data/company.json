@@ -1,0 +1,26 @@
+{
+  "_notice": "Données fictives à usage pédagogique.",
+  "name": "VERTEO",
+  "activity": "Conception et fabrication d'emballages éco-responsables pour les entreprises (B2B)",
+  "founded": 2014,
+  "headcount": 42,
+  "leader": "Léa, dirigeante et fondatrice",
+  "activeClients": 180,
+  "signature": "Emballer aujourd'hui, préserver demain",
+  "secondaryTagline": "Chaque geste compte",
+  "values": ["Sobriété", "Fiabilité", "Transparence", "Responsabilité"],
+  "departments": [
+    { "name": "Commercial et relation client", "manager": "Samia", "headcount": 8 },
+    { "name": "Bureau technique et éco-conception", "manager": "Julia", "headcount": 6 },
+    { "name": "Production (atelier)", "manager": "Marc", "headcount": 14 },
+    { "name": "Logistique", "manager": "Hugo", "headcount": 6 },
+    { "name": "Ressources humaines et administration", "manager": "Nadia", "headcount": 3 },
+    { "name": "Finance et contrôle de gestion", "manager": "Thomas", "headcount": 2 },
+    { "name": "Qualité et RSE", "manager": "Inès", "headcount": 2 }
+  ],
+  "keyFigures": {
+    "revenue2024": "6,8 M€",
+    "grossMargin2024": "38 %",
+    "onTimeDeliveryH1_2026": "94 %"
+  }
+}

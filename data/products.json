@@ -1,0 +1,15 @@
+{
+  "_notice": "Catalogue fictif. Prix indicatifs : ne jamais les annoncer à un client hors politique commerciale validée.",
+  "products": [
+    { "id": "carto-plus", "name": "Carto+", "type": "Boîtes en carton ondulé recyclé", "material": "Carton ondulé 100 % recyclé, encres végétales", "uses": ["Expédition e-commerce", "Coffrets", "Transport"], "endOfLife": "Recyclable (filière papier-carton)", "indicativePrice": "À partir de 0,42 € HT l'unité (format S, par 1 000)", "leadTime": "5 jours ouvrés en stock, 3 semaines si personnalisé" },
+    { "id": "kraft-in", "name": "Kraft'In", "type": "Sachets alimentaires compostables", "material": "Papier kraft et film cellulosique compostable", "uses": ["Thé", "Épices", "Café", "Fruits secs"], "endOfLife": "Compostable en compostage industriel", "indicativePrice": "À partir de 0,18 € HT l'unité (par 5 000)", "leadTime": "5 jours ouvrés en stock, 3 semaines si personnalisé" },
+    { "id": "flexicale", "name": "FlexiCale", "type": "Calage papier", "material": "Papier recyclé froissé ou alvéolé", "uses": ["Remplacement du papier bulle et du polystyrène"], "endOfLife": "Recyclable", "indicativePrice": "À partir de 24 € HT le rouleau de 300 m", "leadTime": "5 jours ouvrés" },
+    { "id": "moula", "name": "Moula", "type": "Barquettes et calages en fibre moulée", "material": "Fibre de cellulose moulée issue de cartons recyclés", "uses": ["Calage d'objets fragiles", "Barquettes"], "endOfLife": "Recyclable et compostable", "indicativePrice": "Sur devis", "leadTime": "6 à 8 semaines pour un nouvel outillage" },
+    { "id": "ruban-gomme", "name": "Ruban papier gommé VERTEO", "type": "Ruban adhésif papier", "material": "Papier kraft renforcé, colle à base d'amidon", "uses": ["Fermeture des colis"], "endOfLife": "Recyclable avec le carton", "indicativePrice": "6,50 € HT le rouleau de 50 m", "leadTime": "5 jours ouvrés" }
+  ],
+  "services": [
+    { "id": "eco-conception", "name": "Éco-conception sur mesure", "description": "Audit de l'emballage existant et proposition d'une alternative plus sobre (bureau technique)." },
+    { "id": "audit", "name": "Audit emballage", "description": "Mesure du sur-emballage et estimation des économies de matière." },
+    { "id": "reprise", "name": "Programme de reprise", "description": "Collecte des chutes et cartons usagés chez les clients de la région pour recyclage." }
+  ]
+}
