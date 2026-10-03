@@ -1,0 +1,15 @@
+# Dépendances
+node_modules/
+
+# Secrets : la clé OpenAI ne doit JAMAIS être versionnée
+.env
+.env.*
+!.env.example
+
+# Index vectoriel généré par `npm run ingest` (reconstruit à partir de /knowledge)
+data/vector-store.json
+
+# Journaux et fichiers système
+logs/
+*.log
+.DS_Store
