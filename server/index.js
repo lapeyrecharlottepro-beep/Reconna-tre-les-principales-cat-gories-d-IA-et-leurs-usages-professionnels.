@@ -19,6 +19,6 @@ createApp().listen(config.server.port, () => {
   });
   console.log(`\n  Leaf est disponible sur http://localhost:${config.server.port}\n`);
   if (!llm.isConfigured()) {
-    console.log('  ⚠ OPENAI_API_KEY absente : seul le niveau 1 (NLP) est utilisable. Voir .env.example\n');
+    console.log('  ⚠ Aucun modèle configuré (OPENAI_API_KEY ou OPENAI_BASE_URL) : seul le niveau 1 (NLP) est utilisable. Voir .env.example\n');
   }
 });

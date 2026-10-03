@@ -55,7 +55,27 @@ npm start                 # http://localhost:3000
 - `npm run ingest` reconstruit l'index vectoriel de la base documentaire (voir §5).
 - `npm test` lance la suite de tests (aucun appel à OpenAI, aucun coût).
 
-**Sans clé API**, le serveur démarre quand même : le niveau 1 (NLP) fonctionne, et l'interface signale que les niveaux 2 à 4 nécessitent la clé.
+**Sans aucun modèle configuré**, le serveur démarre quand même : le niveau 1 (NLP) fonctionne, et l'interface signale que les niveaux 2 à 4 nécessitent un modèle.
+
+### Utiliser Leaf sans clé API (modèle local gratuit avec Ollama)
+
+Les niveaux 2 à 4 peuvent fonctionner **sans compte OpenAI**, avec un modèle qui tourne sur l'ordinateur grâce à [Ollama](https://ollama.com) :
+
+1. Installer Ollama depuis https://ollama.com/download.
+2. Télécharger un modèle de conversation (compatible avec les outils) et un modèle d'embeddings :
+   ```bash
+   ollama pull qwen2.5:7b
+   ollama pull nomic-embed-text
+   ```
+3. Dans `.env`, laisser `OPENAI_API_KEY` vide et renseigner :
+   ```
+   OPENAI_BASE_URL=http://localhost:11434/v1
+   OPENAI_MODEL=qwen2.5:7b
+   OPENAI_EMBEDDING_MODEL=nomic-embed-text
+   ```
+4. Lancer `npm start` (Ollama doit être ouvert).
+
+À savoir : c'est gratuit et les données ne quittent pas l'ordinateur, mais il faut une machine assez puissante (8 Go de RAM au minimum, 16 Go conseillés). Les réponses sont plus lentes et un peu moins précises qu'avec OpenAI, surtout au niveau 4 (agent). Pour une machine modeste, essayer `llama3.2:3b` ; pour de meilleures réponses, `qwen2.5:14b`.
 
 ## 2. Variables d'environnement
 
@@ -63,10 +83,10 @@ Elles se placent dans le fichier `.env`, à la racine. Ce fichier est **ignoré 
 
 | Variable | Obligatoire | Rôle |
 |---|---|---|
-| `OPENAI_API_KEY` | Oui (niveaux 2 à 4) | Clé de l'API OpenAI, lue uniquement par le serveur. |
+| `OPENAI_API_KEY` | Oui pour OpenAI (niveaux 2 à 4) | Clé de l'API OpenAI, lue uniquement par le serveur. Inutile avec un modèle local (Ollama). |
 | `OPENAI_MODEL` | Non | Modèle de génération (défaut : `gpt-4.1-mini`). |
 | `OPENAI_EMBEDDING_MODEL` | Non | Modèle d'embeddings (défaut : `text-embedding-3-small`). |
-| `OPENAI_BASE_URL` | Non | URL d'une API compatible OpenAI (proxy d'entreprise, serveur de test). |
+| `OPENAI_BASE_URL` | Non | URL d'une API compatible OpenAI : Ollama (`http://localhost:11434/v1`), proxy d'entreprise, serveur de test. |
 | `PORT` | Non | Port HTTP (défaut : 3000). |
 | `METRICS_TOKEN` | Non | Jeton exigé pour lire `/api/metrics` depuis une autre machine. |
 | `N8N_WEBHOOK_URL` | Non | Webhook de l'outil n8n (désactivé par défaut). |

@@ -137,3 +137,13 @@ test('indicateurs : comptent messages, outils et injections', async () => {
   assert.ok(m.injectionAttempts >= 1);
   assert.ok(m.apiErrors >= 1);
 });
+
+test('modèle local : configuré par OPENAI_BASE_URL seul, sans clé', () => {
+  const saved = config.llm.apiKey;
+  config.llm.apiKey = '';
+  try {
+    assert.equal(require('../server/llm/client').isConfigured(), true);
+  } finally {
+    config.llm.apiKey = saved;
+  }
+});

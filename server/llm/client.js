@@ -8,8 +8,10 @@ const config = require('../../config/chatbot');
 
 let client = null;
 
+// Configuré si une clé OpenAI est fournie, ou si une API compatible locale
+// (ex. Ollama) est indiquée via OPENAI_BASE_URL : aucune clé n'est alors nécessaire.
 function isConfigured() {
-  return Boolean(config.llm.apiKey);
+  return Boolean(config.llm.apiKey || config.llm.baseURL);
 }
 
 function getClient() {
@@ -20,7 +22,7 @@ function getClient() {
   }
   if (!client) {
     client = new OpenAI({
-      apiKey: config.llm.apiKey,
+      apiKey: config.llm.apiKey || 'local', // valeur factice pour une API locale
       baseURL: config.llm.baseURL,
       timeout: config.llm.timeoutMs,
       maxRetries: 1,

@@ -28,7 +28,7 @@ function loadChunks() {
 
 /** (Re)construit l'index vectoriel si une clé API est disponible. */
 async function buildIndex() {
-  if (!llm.isConfigured()) throw new Error('OPENAI_API_KEY manquante : index vectoriel impossible.');
+  if (!llm.isConfigured()) throw new Error('Aucun modèle configuré (OPENAI_API_KEY ou OPENAI_BASE_URL) : index vectoriel impossible.');
   const store = await buildVectorStore(state.chunks, {
     model: config.rag.embeddingModel, storePath: config.rag.vectorStorePath,
   });

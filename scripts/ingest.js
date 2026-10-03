@@ -9,8 +9,8 @@ const knowledgeBase = require('../server/rag/knowledgeBase');
 (async () => {
   const stats = knowledgeBase.loadChunks();
   console.log(`Documents : ${stats.documents} — extraits : ${stats.chunks}`);
-  if (!config.llm.apiKey) {
-    console.log("OPENAI_API_KEY absente : l'index vectoriel n'est pas construit. La recherche lexicale reste disponible.");
+  if (!config.llm.apiKey && !config.llm.baseURL) {
+    console.log("Ni OPENAI_API_KEY ni OPENAI_BASE_URL : l'index vectoriel n'est pas construit. La recherche lexicale reste disponible.");
     return;
   }
   const store = await knowledgeBase.buildIndex();
