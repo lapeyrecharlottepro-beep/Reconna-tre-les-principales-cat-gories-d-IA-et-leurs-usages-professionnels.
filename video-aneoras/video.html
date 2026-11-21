@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>ANEORAS — FormaNova</title>
+<style>
+@font-face{font-family:'Montserrat';font-weight:300;src:url(fonts/montserrat-latin-300-normal.woff2) format('woff2')}
+@font-face{font-family:'Montserrat';font-weight:400;src:url(fonts/montserrat-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Montserrat';font-weight:500;src:url(fonts/montserrat-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Montserrat';font-weight:600;src:url(fonts/montserrat-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Montserrat';font-weight:700;src:url(fonts/montserrat-latin-700-normal.woff2) format('woff2')}
+:root{--navy:#05254E;--navy2:#0a3468;--red:#B71932;--gold:#D6A13B;--goldL:#F4D58A;--goldD:#B88626;--grey:#E8E8EB;--dark:#2B2B2B;--bg:#F7F7F9}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#000;font-family:'Montserrat',sans-serif;-webkit-font-smoothing:antialiased}
+#stage{position:absolute;inset:0;overflow:hidden;background:var(--navy)}
+.scene{position:absolute;inset:0;overflow:hidden}
+.navy{background:radial-gradient(ellipse 90% 80% at 72% 28%,#0d3b74 0%,#05254E 55%,#031b3b 100%);color:#fff}
+.light{background:var(--bg);color:var(--navy)}
+.white{background:#fff;color:var(--navy)}
+.abs{position:absolute}
+.tag{font-weight:600;font-size:22px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:18px}
+.tag::before{content:'';width:56px;height:3px;background:currentColor;border-radius:2px}
+.tag.red{color:var(--red)}
+.h2{font-size:62px;font-weight:700;line-height:1.15;letter-spacing:-.01em}
+.goldtxt{background:linear-gradient(100deg,#B88626 0%,#F4D58A 50%,#D6A13B 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gold{color:var(--gold)} .redc{color:var(--red)}
+.card{background:#fff;border-radius:20px;box-shadow:0 14px 44px rgba(5,37,78,.10)}
+.mini{position:absolute;right:70px;bottom:46px;display:flex;align-items:center;gap:14px;opacity:.9}
+.mini .w{font-size:20px;letter-spacing:.42em;font-weight:500}
+
+.pill{display:inline-flex;align-items:center;gap:14px;border-radius:999px;padding:16px 28px;font-size:25px;font-weight:600}
+.pill.red{background:#fbe9ec;color:var(--red);border:2px solid rgba(183,25,50,.25)}
+.pill.navy{background:#e9eef6;color:var(--navy)}
+.mask{overflow:hidden;display:inline-block;vertical-align:top}
+.mask>span{display:inline-block}
+/* consequences */
+.grid3{position:absolute;left:140px;top:340px;width:1640px;display:grid;grid-template-columns:repeat(3,1fr);gap:34px}
+.ccard{height:270px;padding:40px 40px 0;position:relative;overflow:hidden}
+.cico{width:76px;height:76px;border-radius:50%;background:#fbe9ec;display:flex;align-items:center;justify-content:center;margin-bottom:26px}
+.ctext{font-size:29px;font-weight:600;line-height:1.3;color:var(--navy)}
+.cline{position:absolute;left:0;bottom:0;height:6px;width:100%;background:var(--red);transform-origin:left}
+/* solution */
+.node{position:absolute;width:150px;text-align:center}
+.ncirc{width:150px;height:150px;border-radius:50%;background:#062c5c;border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 10px rgba(214,161,59,.08)}
+.nnum{font-size:22px;font-weight:700;color:var(--gold);letter-spacing:.15em;margin-bottom:16px}
+.nlab{position:absolute;left:-60px;top:210px;width:270px;font-size:27px;font-weight:600;line-height:1.3;color:#fff}
+.tile{position:absolute;width:360px;height:124px;display:flex;align-items:center;gap:22px;padding:0 26px}
+.tico{width:72px;height:72px;border-radius:16px;background:#e9eef6;display:flex;align-items:center;justify-content:center;flex:none}
+.tt1{font-size:25px;font-weight:700;color:var(--navy)}
+.tt2{font-size:19px;font-weight:500;color:#6b7690;margin-top:4px}
+.row{height:84px;display:flex;align-items:center;gap:24px;padding:0 30px;margin-bottom:14px}
+.row .tx{flex:1;font-size:28px;font-weight:600;color:var(--navy)}
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;background:linear-gradient(140deg,#0d3b74,#05254E);box-shadow:0 0 0 6px var(--gold)}
+.quote{font-size:66px;font-weight:700;line-height:1.25;text-align:center;color:#fff}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+/* ---------- helpers ---------- */
+const stage=document.getElementById('stage');
+CSS.registerProperty({name:'--n',syntax:'<integer>',inherits:false,initialValue:'0'});
+const ANIMS=[],HOOKS=[];
+const E={out:'cubic-bezier(.16,1,.3,1)',inout:'cubic-bezier(.65,0,.35,1)',back:'cubic-bezier(.34,1.56,.64,1)',lin:'linear',in:'cubic-bezier(.55,0,1,.45)'};
+function $$(root,sel){return typeof sel==='string'?[...root.querySelectorAll(sel)]:(Array.isArray(sel)?sel:[sel])}
+function A(el,kf,start,dur,o={}){const a=el.animate(kf,{delay:start*1000,duration:dur*1000,easing:o.e||E.out,fill:o.fill||'both',iterations:o.it||1,direction:o.dir||'normal'});a.pause();ANIMS.push(a);return a}
+const fadeUp=(el,t,d=.9,y=40)=>A(el,[{opacity:0,transform:`translateY(${y}px)`},{opacity:1,transform:'none'}],t,d);
+const fadeIn=(el,t,d=.8)=>A(el,[{opacity:0},{opacity:1}],t,d,{e:E.inout});
+const fadeOut=(el,t,d=.5)=>A(el,[{opacity:1},{opacity:0}],t,d,{e:E.inout,fill:'forwards'});
+const pop=(el,t,d=.7)=>A(el,[{opacity:0,transform:'scale(.6)'},{opacity:1,transform:'scale(1)'}],t,d,{e:E.back});
+const slideX=(el,t,d=.9,x=-60)=>A(el,[{opacity:0,transform:`translateX(${x}px)`},{opacity:1,transform:'none'}],t,d);
+const reveal=(el,t,d=1)=>A(el,[{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0% 0 0)'}],t,d,{e:E.inout});
+const float=(el,t,amp=10,per=2.4,rot=0)=>A(el,[{transform:`translateY(${-amp}px) rotate(${rot}deg)`},{transform:`translateY(${amp}px) rotate(${-rot}deg)`}],t,per,{e:E.inout,it:40,dir:'alternate',fill:'both'});
+function stagger(els,t,step,fn){els.forEach((e,i)=>fn(e,t+i*step))}
+/* split text into masked words that slide up */
+function words(txt,cls=''){return txt.split(/\s+/).filter(Boolean).map(w=>{let c=cls;const m=w.match(/^\*(.+)\*$/);if(m){w=m[1];c='gold'}return `<span class="mask"><span class="${c}">${w}</span></span>`}).join(' ')}
+function wordsIn(root,t,step=.06,d=.8){$$(root,'.mask>span').forEach((s,i)=>A(s,[{transform:'translateY(110%)'},{transform:'none'}],t+i*step,d))}
+
+/* ---------- icons ---------- */
+const IC={
+alert:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+mail:'<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+grid:'<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>',
+clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+euro:'<path d="M18 6.5A7 7 0 1 0 18 17.5"/><line x1="4" y1="10" x2="13" y2="10"/><line x1="4" y1="14" x2="13" y2="14"/>',
+eyeoff:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="2" y1="2" x2="22" y2="22"/>',
+shuffle:'<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>',
+users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+down:'<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>',
+up:'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+repeat:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+xcircle:'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+layers:'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+bars:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+search:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+check:'<polyline points="20 6 9 17 4 12"/>',
+monitor:'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
+play:'<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>',
+sliders:'<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
+zap:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+db:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
+book:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+award:'<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
+pen:'<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
+video:'<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+send:'<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
+usercheck:'<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>',
+bell:'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+folder:'<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+clip:'<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>',
+copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+expand:'<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>',
+slash:'<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>',
+detour:'<polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/>',
+hub:'<circle cx="12" cy="12" r="3.2"/><circle cx="4" cy="4" r="2"/><circle cx="20" cy="4" r="2"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/><line x1="5.5" y1="5.5" x2="9.7" y2="9.7"/><line x1="18.5" y1="5.5" x2="14.3" y2="9.7"/><line x1="5.5" y1="18.5" x2="9.7" y2="14.3"/><line x1="18.5" y1="18.5" x2="14.3" y2="14.3"/>',
+route:'<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
+help:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+arrow:'<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
+cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+};
+const ico=(n,s=32,c='currentColor',w=1.8)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`;
+
+/* ---------- logo ---------- */
+let UID=0;
+const VB='0 -14 312 272';
+function logoIcon(apex){const id='g'+(UID++);
+ const sv=b=>`<svg viewBox="${VB}" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">${b}</svg>`;
+ return `<div class="lg-apex" style="position:absolute;inset:0">${sv(`<polygon fill="${apex}" points="122,16 172,112 151,127 122,72 54,206 26,206"/>`)}</div>
+ <div class="lg-red" style="position:absolute;inset:0">${sv(`<polygon fill="#B71932" points="150,125 176,118 246,252 213,252"/>`)}</div>
+ <div class="lg-sw" style="position:absolute;inset:0">${sv(`<defs><linearGradient id="${id}" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#B88626"/><stop offset=".55" stop-color="#F4D58A"/><stop offset="1" stop-color="#D6A13B"/></linearGradient></defs><path fill="url(#${id})" d="M6,254 C58,170 150,98 262,46 C166,108 96,172 42,254 Z"/>`)}</div>
+ <div class="lg-star" style="position:absolute;inset:0">${sv(`<path fill="#E7BC62" d="M278,-6 L282.5,15.5 L304,20 L282.5,24.5 L278,46 L273.5,24.5 L252,20 L273.5,15.5 Z"/>`)}</div>`;}
+function letter(ch,col,gold){const st=`stroke="${col}" stroke-width="11" fill="none" stroke-linejoin="miter" stroke-miterlimit="10"`;
+ let b;
+ if(ch==='Λ') b=`<path d="M8,94 L50,8 L92,94" ${st}/>`;
+ else if(ch==='Ξ') b=`<rect x="12" y="8" width="76" height="13" fill="${gold}"/><rect x="12" y="44.5" width="76" height="13" fill="${gold}"/><rect x="12" y="81" width="76" height="13" fill="${gold}"/>`;
+ else b=`<text x="50" y="94" text-anchor="middle" font-family="Montserrat" font-weight="400" font-size="122" fill="${col}">${ch}</text>`;
+ return `<svg class="lt" viewBox="0 0 100 100" style="overflow:visible">${b}</svg>`;}
+function wordmark(letters,col,h,gap){return `<div class="wm" style="display:flex;gap:${gap}px;height:${h}px">${letters.map(c=>`<div style="height:${h}px;width:${h}px">${letter(c,col,'#C9963A')}</div>`).join('')}</div>`}
+function animLogo(root,t){
+ const g=s=>root.querySelector(s);
+ A(g('.lg-apex'),[{clipPath:'inset(100% 0 0 0)'},{clipPath:'inset(0% 0 0 0)'}],t,.9,{e:E.inout});
+ A(g('.lg-red'),[{clipPath:'inset(0 0 100% 0)'},{clipPath:'inset(0 0 0% 0)'}],t+.45,.8,{e:E.inout});
+ A(g('.lg-sw'),[{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0% 0 0)'}],t+.75,1.0,{e:E.inout});
+ A(g('.lg-star'),[{opacity:0,transform:'scale(0) rotate(-90deg)',transformOrigin:'89% 10%'},{opacity:1,transform:'scale(1) rotate(0)',transformOrigin:'89% 10%'}],t+1.55,.8,{e:E.back});
+ A(g('.lg-star'),[{filter:'drop-shadow(0 0 0px #F4D58A)'},{filter:'drop-shadow(0 0 14px #F4D58A)'}],t+2.2,1.2,{e:E.inout,it:20,dir:'alternate',fill:'forwards'});
+}
+const miniLogo=dark=>`<div class="mini" style="color:${dark?'#fff':'#05254E'}"><div style="position:relative;width:46px;height:40px">${logoIcon(dark?'#fff':'#05254E')}</div><div class="w">ANEORAS</div></div>`;
+
+/* decorative swoosh for navy scenes */
+const deco=()=>`<svg class="deco abs" style="left:0;top:0" width="1920" height="1080" viewBox="0 0 1920 1080"><defs><linearGradient id="dg${UID}" x1="0" x2="1"><stop offset="0" stop-color="#D6A13B" stop-opacity="0"/><stop offset="1" stop-color="#F4D58A" stop-opacity=".35"/></linearGradient></defs><path d="M-100,1180 C500,820 1100,520 2050,160" stroke="url(#dg${UID++})" stroke-width="2.5" fill="none"/><path d="M-100,1260 C560,900 1200,640 2050,330" stroke="rgba(214,161,59,.10)" stroke-width="1.5" fill="none"/></svg>`;
+
+/* ---------- scene factory ---------- */
+function scene(start,end,cls,html,opt={}){const s=document.createElement('div');s.className='scene '+cls;s.innerHTML=(cls==='navy'&&!opt.nodeco?deco():'')+html;stage.appendChild(s);
+ A(s,[{opacity:0,transform:'scale(1.035)'},{opacity:1,transform:'scale(1)'}],start,.75,{e:E.out});
+ if(end) A(s,[{visibility:'visible'},{visibility:'hidden'}],end,.01,{fill:'forwards',e:E.lin});
+ const d=s.querySelector('.deco'); if(d) A(d,[{transform:'translateX(-60px)'},{transform:'translateX(60px)'}],start,(end||start+10)-start,{e:E.lin});
+ s.q=sel=>s.querySelector(sel); s.qa=sel=>[...s.querySelectorAll(sel)];
+ return s;}
+
+/* ---------- reusable scenes ---------- */
+function chapter(t0,t1,num,word,sub){
+ const s=scene(t0,t1,'navy',`
+ <div class="abs num goldtxt" style="left:150px;top:250px;font-size:400px;font-weight:700;line-height:1;letter-spacing:-.04em">${num}</div>
+ <div class="abs" style="left:700px;top:370px">
+   <div class="tag">Étape ${num}</div>
+   <div class="wd" style="font-size:128px;font-weight:700;letter-spacing:.1em;margin-top:18px;line-height:1.05">${[...word].map(c=>`<span class="mask"><span>${c}</span></span>`).join('')}</div>
+   <div class="sb" style="font-size:40px;font-weight:400;color:#c9d3e6;margin-top:28px;max-width:1050px;line-height:1.35">${sub}</div>
+ </div>
+ <svg class="abs" style="left:0;top:0" width="1920" height="1080"><path class="sw" d="M150,900 C620,860 1180,820 1760,690" stroke="#D6A13B" stroke-width="5" fill="none" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>
+ <svg class="abs st" style="left:1736px;top:662px" width="52" height="52" viewBox="0 0 52 52"><path fill="#F4D58A" d="M26,0 L30.5,21.5 L52,26 L30.5,30.5 L26,52 L21.5,30.5 L0,26 L21.5,21.5Z"/></svg>
+ ${miniLogo(true)}`);
+ A(s.q('.num'),[{clipPath:'inset(100% 0 0 0)',transform:'translateY(60px)'},{clipPath:'inset(0% 0 0 0)',transform:'none'}],t0+.2,1.1,{e:E.out});
+ fadeIn(s.q('.tag'),t0+.6);
+ $$(s,'.wd .mask>span').forEach((e,i)=>A(e,[{transform:'translateY(110%)'},{transform:'none'}],t0+.7+i*.05,.8));
+ fadeUp(s.q('.sb'),t0+1.5,.9,30);
+ A(s.q('.sw'),[{strokeDashoffset:1},{strokeDashoffset:0}],t0+.4,1.8,{e:E.inout});
+ pop(s.q('.st'),t0+2.0,.8);
+ A(s.q('.st'),[{transform:'rotate(0deg)'},{transform:'rotate(90deg)'}],t0+2.8,3,{e:E.inout,fill:'forwards'});
+ return s;}
+
+function consequences(t0,t1,chap,items){
+ const s=scene(t0,t1,'light',`
+ <div class="abs" style="left:140px;top:120px"><div class="tag red">${chap}</div><div class="h2 hd" style="margin-top:24px">${words('Les conséquences')}</div></div>
+ <div class="grid3">${items.map(([i,t])=>`<div class="card ccard"><div class="cico">${ico(i,40,'#B71932',2)}</div><div class="ctext">${t}</div><div class="cline"></div></div>`).join('')}</div>
+ ${miniLogo(false)}`);
+ fadeIn(s.q('.tag'),t0+.3); wordsIn(s.q('.hd'),t0+.4);
+ s.qa('.ccard').forEach((c,i)=>{const t=t0+1.0+i*.42; A(c,[{opacity:0,transform:'translateY(50px) scale(.94)'},{opacity:1,transform:'none'}],t,.8);
+   pop(c.querySelector('.cico'),t+.2,.6); A(c.querySelector('.cline'),[{transform:'scaleX(0)'},{transform:'scaleX(1)'}],t+.3,.9,{e:E.inout});});
+ return s;}
+
+function solution(t0,t1,chap,head,steps){
+ const n=steps.length,x0=230,x1=1690,y=700,dx=(x1-x0)/(n-1);
+ const s=scene(t0,t1,'navy',`
+ <div class="abs" style="left:140px;top:120px;right:140px">
+   <div style="display:flex;justify-content:space-between;align-items:center"><div class="tag">La solution ANEORAS</div><div class="ch" style="font-size:20px;letter-spacing:.3em;color:#8fa3c4;font-weight:600">${chap}</div></div>
+   <div class="h2 hd" style="margin-top:30px;max-width:1500px;font-size:60px">${words(head)}</div>
+ </div>
+ <div class="abs ln0" style="left:${x0}px;top:${y-2}px;width:${x1-x0}px;height:4px;background:rgba(255,255,255,.12);border-radius:2px"></div>
+ <div class="abs ln" style="left:${x0}px;top:${y-2}px;width:${x1-x0}px;height:4px;background:linear-gradient(90deg,#B88626,#F4D58A,#D6A13B);border-radius:2px;transform-origin:left"></div>
+ <div class="abs dot" style="left:${x0-12}px;top:${y-12}px;width:24px;height:24px;border-radius:50%;background:#F4D58A;box-shadow:0 0 24px 8px rgba(244,213,138,.6)"></div>
+ ${steps.map(([i,l],k)=>`<div class="node" style="left:${x0+k*dx-75}px;top:${y-75-46}px"><div class="nnum">${String(k+1).padStart(2,'0')}</div><div class="ncirc">${ico(i,58,'#E7BC62',1.6)}</div><div class="nlab">${l}</div></div>`).join('')}
+ ${miniLogo(true)}`);
+ fadeIn(s.q('.tag'),t0+.3); fadeIn(s.q('.ch'),t0+.5); wordsIn(s.q('.hd'),t0+.5,.05);
+ const ts=t0+2.0, per=.75, dur=per*(n-1);
+ fadeIn(s.q('.ln0'),t0+1.6,.6);
+ A(s.q('.ln'),[{transform:'scaleX(0)'},{transform:'scaleX(1)'}],ts,dur,{e:E.lin});
+ A(s.q('.dot'),[{transform:'translateX(0)',opacity:1},{transform:`translateX(${x1-x0}px)`,opacity:1}],ts,dur,{e:E.lin});
+ A(s.q('.dot'),[{opacity:1},{opacity:0}],ts+dur,.4,{fill:'forwards'});
+ fadeIn(s.q('.dot'),ts-.3,.3);
+ s.qa('.node').forEach((nd,k)=>{const t=ts+k*per-.15; pop(nd.querySelector('.ncirc'),t,.7); fadeIn(nd.querySelector('.nnum'),t+.1,.5); fadeUp(nd.querySelector('.nlab'),t+.2,.7,20);
+   A(nd.querySelector('.ncirc'),[{boxShadow:'0 0 0 10px rgba(214,161,59,.08)'},{boxShadow:'0 0 0 22px rgba(214,161,59,.18)'}],ts+dur+.4,.9,{e:E.inout,it:9,dir:'alternate',fill:'forwards'});});
+ return s;}
+
+/* ============ TIMELINE ============ */
+/* S1 — Intro */
+(()=>{const t0=0;
+ const s=scene(t0,7.4,'navy',`
+ <div class="abs lg" style="left:810px;top:205px;width:300px;height:262px">${logoIcon('#ffffff')}</div>
+ <div class="abs" style="left:0;right:0;top:545px;display:flex;justify-content:center">${wordmark(['Λ','N','Ξ','O','R','Λ','S'],'#fff',84,62)}</div>
+ <div class="abs tl" style="left:0;right:0;top:690px;text-align:center;font-size:27px;letter-spacing:.42em;color:#c9d3e6;font-weight:400">VOTRE POTENTIEL. NOTRE STRATÉGIE.</div>
+ <div class="abs cs" style="left:0;right:0;top:850px;text-align:center"><span style="font-size:24px;letter-spacing:.3em;font-weight:600;color:#D6A13B">ÉTUDE DE CAS</span><span style="display:inline-block;width:50px;height:2px;background:#D6A13B;vertical-align:middle;margin:0 22px"></span><span style="font-size:24px;letter-spacing:.3em;font-weight:600;color:#fff">FORMANOVA</span></div>`,{nodeco:true});
+ animLogo(s.q('.lg'),t0+.4);
+ s.qa('.wm>div').forEach((l,i)=>A(l,[{opacity:0,transform:'translateY(30px)'},{opacity:1,transform:'none'}],t0+1.9+i*.09,.8));
+ A(s.q('.tl'),[{opacity:0,letterSpacing:'.8em'},{opacity:1,letterSpacing:'.42em'}],t0+2.8,1.4);
+ fadeUp(s.q('.cs'),t0+4.4,.9,20);
+ A(s.q('.lg'),[{transform:'scale(1)'},{transform:'scale(1.04)'}],t0+2.5,5,{e:E.inout,fill:'forwards'});
+})();
+
+/* S2 — Contexte */
+(()=>{const t0=6.7;
+ const bars=[150,190,215,265,300,355,410];
+ const s=scene(t0,17.4,'light',`
+ <div class="abs" style="left:140px;top:150px;width:860px">
+   <div class="tag">Le contexte</div>
+   <div class="nm" style="font-size:132px;font-weight:700;letter-spacing:-.02em;margin-top:24px;line-height:1">FormaNova</div>
+   <div class="sub" style="font-size:40px;font-weight:500;color:#4a5878;margin-top:22px">Organisme de formation</div>
+   <div class="st" style="display:flex;align-items:baseline;gap:20px;margin-top:40px"><span class="counter goldtxt" style="font-size:120px;font-weight:700;line-height:1"></span><span style="font-size:38px;font-weight:600">salariés</span></div>
+   <div class="chips" style="display:flex;flex-wrap:wrap;gap:16px;margin-top:44px">
+     ${['Management','Compétences techniques','Relation client','Développement professionnel'].map(c=>`<span class="pill navy">${c}</span>`).join('')}
+   </div>
+ </div>
+ <div class="abs card ch" style="left:1080px;top:200px;width:700px;height:620px">
+   <div style="position:absolute;left:44px;top:38px;font-size:24px;font-weight:700;letter-spacing:.12em;color:#6b7690">UNE CROISSANCE SOUTENUE</div>
+   ${bars.map((h,i)=>`<div class="bar" style="position:absolute;bottom:60px;left:${70+i*84}px;width:52px;height:${h}px;border-radius:10px 10px 0 0;background:${i===6?'linear-gradient(#F4D58A,#D6A13B)':'#05254E'};transform-origin:bottom"></div>`).join('')}
+   <svg style="position:absolute;left:0;top:0" width="700" height="620"><path class="tr" d="M96,${560-150-30} L180,${560-190-30} L264,${560-215-30} L348,${560-265-30} L432,${560-300-30} L516,${560-355-30} L600,${560-410-30} L650,${560-460}" stroke="#D6A13B" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>
+ </div>
+ ${[['users','Nouveaux clients',990,300],['book','Catalogue enrichi',1440,140],['usercheck','Plus de formateurs',1420,850],['clip','Volume administratif',990,850]].map(([i,t,x,y])=>`<div class="abs card fl" style="left:${x}px;top:${y}px;padding:16px 24px;display:flex;gap:14px;align-items:center;white-space:nowrap;font-size:23px;font-weight:600;border-radius:14px">${ico(i,28,'#D6A13B',2)}${t}<span class="gold">${ico('up',24,'#D6A13B',2.4)}</span></div>`).join('')}
+ <div class="abs band" style="left:0;right:0;bottom:0;height:330px;background:linear-gradient(180deg,#05254E,#031b3b);display:flex;align-items:center;padding-left:140px">
+   <div class="bt" style="font-size:58px;font-weight:700;line-height:1.25;color:#fff">${words('Mais derrière cette croissance,')}<br>${words("l'organisation atteint ses limites.","goldtxt")}</div>
+ </div>
+ ${miniLogo(false)}`);
+ fadeIn(s.q('.tag'),t0+.4); fadeUp(s.q('.nm'),t0+.5,1); fadeUp(s.q('.sub'),t0+.9);
+ fadeUp(s.q('.st'),t0+1.3); {const el=s.q('.counter'),a=t0+1.3;HOOKS.push(t=>{const k=Math.min(1,Math.max(0,(t-a)/1.6));el.textContent=Math.round(120*(1-Math.pow(1-k,3)))})}
+ stagger(s.qa('.chips .pill'),t0+2.4,.22,(e,t)=>pop(e,t,.6));
+ slideX(s.q('.ch'),t0+1.0,1,80);
+ stagger(s.qa('.bar'),t0+1.8,.15,(e,t)=>A(e,[{transform:'scaleY(0)'},{transform:'scaleY(1)'}],t,.8));
+ A(s.q('.tr'),[{strokeDashoffset:1},{strokeDashoffset:0}],t0+2.6,1.6,{e:E.inout});
+ s.qa('.fl').forEach((e,i)=>{pop(e,t0+3.4+i*.35,.7)});
+ const tb=t0+6.4;
+ A(s.q('.band'),[{transform:'translateY(100%)'},{transform:'none'}],tb,.9,{e:E.out});
+ wordsIn(s.q('.bt'),tb+.4,.06);
+ A(s.q('.ch'),[{filter:'none'},{filter:'grayscale(.7) blur(1px)'}],tb+.5,1,{fill:'forwards'});
+})();
+
+/* S3 — Claire */
+(()=>{const t0=16.7;
+ const s=scene(t0,25.4,'navy',`
+ <div class="abs av avatar" style="left:190px;top:330px;width:300px;height:300px;font-size:104px">CM</div>
+ <div class="abs who" style="left:140px;top:690px;width:400px;text-align:center"><div style="font-size:42px;font-weight:700">Claire Martin</div><div style="font-size:26px;color:#c9d3e6;margin-top:10px;line-height:1.4">Directrice générale<br>FormaNova</div></div>
+ <div class="abs" style="left:700px;top:250px;width:1100px">
+   <div class="tag">Le défi</div>
+   <div class="q" style="font-size:54px;font-weight:600;line-height:1.35;margin-top:34px">
+     <div class="l1">${words('Comment *structurer* son activité,')}</div>
+     <div class="l2">${words('*améliorer* son fonctionnement')}</div>
+     <div class="l3">${words('et *développer* son offre digitale…')}</div>
+   </div>
+   <div class="q4" style="margin-top:44px;font-size:46px;font-weight:700;line-height:1.3;padding-left:30px;border-left:6px solid #B71932">sans complexifier davantage<br>son organisation&nbsp;?</div>
+ </div>`);
+ pop(s.q('.av'),t0+.4,1); fadeUp(s.q('.who'),t0+1.0);
+ A(s.q('.av'),[{boxShadow:'0 0 0 6px #D6A13B'},{boxShadow:'0 0 0 18px rgba(214,161,59,.35)'}],t0+1.6,1.2,{e:E.inout,it:8,dir:'alternate',fill:'forwards'});
+ fadeIn(s.q('.tag'),t0+.8);
+ wordsIn(s.q('.l1'),t0+1.2,.07); wordsIn(s.q('.l2'),t0+2.2,.07); wordsIn(s.q('.l3'),t0+3.1,.07);
+ slideX(s.q('.q4'),t0+4.6,1,-40);
+})();
+
+/* ===== 1. STRUCTURER ===== */
+chapter(24.7,29.4,'01','STRUCTURER','Une organisation qui ne suit plus sa croissance');
+
+(()=>{const t0=28.7;
+ const tiles=[['grid','Catalogue','Fichier Excel',140,330,-5],['users','Inscriptions','Outil n°1',520,300,4],['clip','Inscriptions','Outil n°2',230,530,3],['mail','Infos formateurs','Par email',600,520,-4],['file','Suivi des sessions','Fichier n°1',130,740,4],['folder','Suivi apprenants','Fichier n°2',520,750,-3]];
+ const c=tiles.map(t=>[t[3]+165,t[4]+62]);
+ const links=[[0,3],[1,4],[2,5],[0,5],[1,2],[3,4]];
+ const s=scene(t0,41.4,'light',`
+ <div class="abs" style="left:140px;top:110px"><div class="tag red">Le problème</div><div class="h2 hd" style="margin-top:22px;font-size:56px">${words('Des outils dispersés… puis un LMS choisi trop vite')}</div></div>
+ <svg class="abs" style="left:0;top:0" width="1920" height="1080">${links.map(([a,b])=>`<line class="lk" x1="${c[a][0]}" y1="${c[a][1]}" x2="${c[b][0]}" y2="${c[b][1]}" stroke="#B71932" stroke-opacity=".35" stroke-width="2.5" stroke-dasharray="8 10"/>`).join('')}</svg>
+ ${tiles.map(([i,a,b,x,y,r])=>`<div class="abs tw" style="left:${x}px;top:${y}px;transform:rotate(${r}deg)"><div class="fw"><div class="card tile" style="position:relative">${`<div class="tico">${ico(i,38,'#05254E',1.9)}</div>`}<div><div class="tt1">${a}</div><div class="tt2">${b}</div></div></div></div></div>`).join('')}
+ <div class="abs" style="left:1060px;top:330px;width:720px">
+   <div class="r1" style="font-size:32px;font-weight:600;color:#4a5878">Claire décide d'investir dans un LMS</div>
+   <div class="lms" style="margin-top:26px;height:200px;border-radius:22px;background:linear-gradient(135deg,#0d3b74,#05254E);display:flex;align-items:center;gap:34px;padding:0 44px;color:#fff;box-shadow:0 20px 50px rgba(5,37,78,.3)">
+     <div style="width:110px;height:110px;border-radius:24px;background:rgba(214,161,59,.15);display:flex;align-items:center;justify-content:center">${ico('monitor',60,'#E7BC62',1.6)}</div>
+     <div><div style="font-size:44px;font-weight:700">Plateforme LMS</div><div style="font-size:25px;color:#c9d3e6;margin-top:8px">Choisie pour ses fonctionnalités…</div></div>
+   </div>
+   <div class="r2" style="font-size:30px;font-weight:700;color:#B71932;margin-top:22px">…sans analyse préalable des besoins</div>
+   <div class="pl" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:34px">
+     ${['Tâches encore manuelles','Outils complémentaires','Informations dispersées','Manque de visibilité'].map(t=>`<span class="pill red" style="font-size:23px;padding:14px 22px">${ico('alert',26,'#B71932',2)}${t}</span>`).join('')}
+   </div>
+ </div>
+ <div class="abs ov" style="inset:0;background:radial-gradient(ellipse at 50% 40%,#0d3b74,#05254E 60%,#031b3b);display:flex;flex-direction:column;align-items:center;justify-content:center">
+   <div class="qm goldtxt" style="font-size:200px;font-weight:700;line-height:.6;height:110px">“</div>
+   <div class="quote qq" style="max-width:1500px">${words("Claire réalise qu'elle a choisi un outil")}<br>${words("avant d'avoir structuré son besoin.","goldtxt")}</div>
+ </div>
+ ${miniLogo(false)}`);
+ fadeIn(s.q('.tag'),t0+.3); wordsIn(s.q('.hd'),t0+.4,.05);
+ s.qa('.tw').forEach((e,i)=>{const t=t0+.8+i*.25; A(e.firstChild,[{opacity:0,transform:'translateY(-80px) scale(.8)'},{opacity:1,transform:'none'}],t,.8,{e:E.back}); float(e.firstChild.firstChild,t+.8,7,1.8+i*.23)});
+ stagger(s.qa('.lk'),t0+2.2,.15,(e,t)=>fadeIn(e,t,.6));
+ A(s.q('.lk'),[{strokeDashoffset:0},{strokeDashoffset:-180}],t0+2,12,{e:E.lin});
+ s.qa('.lk').forEach(l=>A(l,[{strokeDashoffset:0},{strokeDashoffset:-180}],t0+2,12,{e:E.lin,fill:'forwards'}));
+ fadeUp(s.q('.r1'),t0+3.4);
+ A(s.q('.lms'),[{opacity:0,transform:'translateY(-120px)'},{opacity:1,transform:'none'}],t0+4.0,1,{e:E.back});
+ fadeUp(s.q('.r2'),t0+5.2,.8,20);
+ A(s.q('.lms'),[{boxShadow:'0 20px 50px rgba(5,37,78,.3), 0 0 0 0 rgba(183,25,50,0)'},{boxShadow:'0 20px 50px rgba(5,37,78,.3), 0 0 0 10px rgba(183,25,50,.55)'}],t0+6.0,.6,{e:E.inout,it:5,dir:'alternate',fill:'forwards'});
+ stagger(s.qa('.pl .pill'),t0+6.0,.3,(e,t)=>pop(e,t,.6));
+ const tq=t0+9.2;
+ A(s.q('.ov'),[{clipPath:'circle(0% at 50% 50%)'},{clipPath:'circle(75% at 50% 50%)'}],tq,1.0,{e:E.inout});
+ fadeUp(s.q('.qm'),tq+.5,.8); wordsIn(s.q('.qq'),tq+.6,.07);
+})();
+
+consequences(40.7,48.4,'01 · Structurer',[['slash','Des outils mal adaptés à l’organisation'],['euro','Des coûts supplémentaires de paramétrage et d’intégration'],['shuffle','Des processus fragmentés'],['detour','Des équipes qui contournent la plateforme'],['eyeoff','Une visibilité insuffisante sur l’activité'],['down','Une digitalisation qui ralentit au lieu d’accélérer']]);
+
+solution(47.7,57.4,'01 · STRUCTURER','Structurer et centraliser l’activité de formation dans un environnement numérique adapté.',[['search','Audit de l’organisation'],['monitor','Sélection du LMS'],['route','Structuration des parcours'],['hub','Centralisation'],['bars','Pilotage de l’activité']]);
+
+/* ===== 2. OPTIMISER ===== */
+chapter(56.7,61.4,'02','OPTIMISER','Une gestion administrative qui absorbe les ressources');
+
+(()=>{const t0=60.7;
+ const tasks=[['usercheck','Saisir et vérifier les inscriptions'],['send','Envoyer les convocations'],['bell','Relancer les apprenants'],['folder','Collecter les documents'],['cal','Suivre présences et absences'],['grid','Mettre à jour les tableaux Excel'],['clip','Récupérer les évaluations des formateurs']];
+ const s=scene(t0,75.4,'light',`
+ <div class="abs" style="left:140px;top:110px"><div class="tag red">Le problème</div><div class="h2 hd" style="margin-top:22px;font-size:56px">${words('Une charge administrative qui ne cesse de croître')}</div></div>
+ <div class="abs card so" style="left:140px;top:320px;width:560px;height:620px;padding:50px;text-align:center">
+   <div class="avatar sa" style="width:170px;height:170px;font-size:68px;margin:10px auto 0">S</div>
+   <div style="font-size:42px;font-weight:700;margin-top:34px">Sophie</div>
+   <div style="font-size:25px;color:#6b7690;margin-top:8px">Responsable administrative</div>
+   <div style="text-align:left;margin-top:54px;font-size:22px;font-weight:600;color:#4a5878;display:flex;align-items:center;gap:12px">${ico('clock',28,'#B71932',2)}Une grande partie de ses journées</div>
+   <div style="height:18px;border-radius:9px;background:#eceef3;margin-top:16px;overflow:hidden"><div class="tb" style="height:100%;width:82%;background:linear-gradient(90deg,#e0566a,#B71932);border-radius:9px;transform-origin:left"></div></div>
+   <div style="text-align:left;margin-top:12px;font-size:21px;color:#B71932;font-weight:600">consacrée aux tâches répétitives</div>
+ </div>
+ <div class="abs ls" style="left:780px;top:320px;width:1000px">
+   ${tasks.map(([i,t])=>`<div class="card row">${ico(i,34,'#05254E',1.9)}<div class="tx">${t}</div><span class="rp">${ico('repeat',28,'#B71932',2)}</span></div>`).join('')}
+ </div>
+ <div class="abs ov" style="inset:0;background:#F7F7F9">
+   <div class="abs" style="left:140px;top:140px"><div class="tag">Pourtant</div><div class="h2 h3" style="margin-top:22px;font-size:58px;max-width:1600px">${words('La direction veut démontrer la qualité de ses formations…')}</div></div>
+   <div class="abs card k1" style="left:140px;top:420px;width:760px;height:480px;padding:56px">
+     <div style="font-size:26px;font-weight:700;letter-spacing:.14em;color:#6b7690">CE QUE FORMANOVA SAIT</div>
+     ${['Combien de personnes sont inscrites','Combien de formations sont organisées'].map(t=>`<div class="ki" style="display:flex;gap:22px;align-items:center;margin-top:46px;font-size:34px;font-weight:600"><span style="width:62px;height:62px;border-radius:50%;background:#e9eef6;display:flex;align-items:center;justify-content:center;flex:none">${ico('check',34,'#05254E',2.6)}</span>${t}</div>`).join('')}
+   </div>
+   <div class="abs k2" style="left:980px;top:420px;width:800px;height:480px;padding:56px;border-radius:20px;background:linear-gradient(135deg,#0d3b74,#05254E);color:#fff;box-shadow:0 20px 50px rgba(5,37,78,.3)">
+     <div style="font-size:26px;font-weight:700;letter-spacing:.14em;color:#E7BC62">CE QU’ELLE PEINE À MESURER</div>
+     <div style="display:flex;gap:34px;align-items:center;margin-top:60px"><span class="hq">${ico('help',120,'#e0566a',1.6)}</span><div style="font-size:46px;font-weight:700;line-height:1.25">Ce que les apprenants ont <span class="goldtxt">réellement acquis</span></div></div>
+   </div>
+ </div>
+ ${miniLogo(false)}`);
+ fadeIn(s.q('.tag'),t0+.3); wordsIn(s.q('.hd'),t0+.4,.05);
+ slideX(s.q('.so'),t0+.8,1,-60); pop(s.q('.sa'),t0+1.2,.8);
+ A(s.q('.tb'),[{transform:'scaleX(0)'},{transform:'scaleX(1)'}],t0+2,4.5,{e:'cubic-bezier(.3,.6,.4,1)'});
+ s.qa('.row').forEach((r,i)=>{const t=t0+1.4+i*.55; A(r,[{opacity:0,transform:'translateX(120px)'},{opacity:1,transform:'none'}],t,.7);
+   A(r.querySelector('.rp'),[{transform:'rotate(0)'},{transform:'rotate(360deg)'}],t+.3,1.2,{e:E.inout,it:6,fill:'forwards'});});
+ const tq=t0+7.6;
+ A(s.q('.ov'),[{transform:'translateY(100%)'},{transform:'none'}],tq,1,{e:E.inout});
+ fadeIn(s.q('.ov .tag'),tq+.7); wordsIn(s.q('.h3'),tq+.8,.05);
+ slideX(s.q('.k1'),tq+1.8,.9,-60); stagger(s.qa('.ki'),tq+2.4,.4,(e,t)=>fadeUp(e,t,.7,20));
+ slideX(s.q('.k2'),tq+3.4,.9,60); pop(s.q('.hq'),tq+3.9,.8);
+ A(s.q('.hq'),[{transform:'scale(1)'},{transform:'scale(1.12)'}],tq+4.7,.6,{e:E.inout,it:9,dir:'alternate',fill:'forwards'});
+})();
+
+consequences(74.7,82.4,'02 · Optimiser',[['layers','Une charge administrative croissante'],['repeat','Des tâches répétitives à faible valeur ajoutée'],['copy','Des erreurs, oublis et doubles saisies'],['db','Des informations dispersées et difficiles à exploiter'],['shuffle','Un suivi des compétences hétérogène'],['target','Une progression pédagogique difficile à mesurer']]);
+
+solution(81.7,91.4,'02 · OPTIMISER','Simplifier la gestion administrative, automatiser les processus et mesurer les acquis des apprenants.',[['sliders','Optimisation des processus'],['zap','Automatisation'],['hub','Centralisation du suivi'],['award','Évaluation des acquis'],['bars','Pilotage qualité et performance']]);
+
+/* ===== 3. DÉVELOPPER ===== */
+chapter(90.7,95.4,'03','DÉVELOPPER','Un catalogue riche, mais un potentiel digital inexploité');
+
+(()=>{const t0=94.7;
+ const docs=[['monitor','PowerPoint'],['file','PDF'],['pen','Exercices'],['book','Études de cas']];
+ const prod=['Vidéo','Module','Ressource','Vidéo','Module','Vidéo','Ressource','Module','Vidéo','Ressource','Module','Vidéo'];
+ const sty=['#05254E','#D6A13B','#B71932','#8a93a6'];
+ const s=scene(t0,108.4,'light',`
+ <div class="abs" style="left:140px;top:110px"><div class="tag red">Le problème</div><div class="h2 hd" style="margin-top:22px;font-size:56px">${words('Un catalogue riche… pensé pour le présentiel')}</div></div>
+ <div class="abs" style="left:140px;top:330px;width:760px;display:grid;grid-template-columns:1fr 1fr;gap:26px">
+   ${docs.map(([i,t])=>`<div class="card dc" style="height:150px;display:flex;align-items:center;gap:22px;padding:0 30px"><div class="tico">${ico(i,38,'#05254E',1.9)}</div><div class="tt1" style="font-size:28px">${t}</div></div>`).join('')}
+ </div>
+ <div class="abs fx" style="left:140px;top:700px;width:760px;display:flex;flex-direction:column;gap:14px">
+   ${['Plusieurs dizaines de formations','Une expertise reconnue','Un modèle encore largement présentiel'].map(t=>`<div class="fi" style="display:flex;align-items:center;gap:16px;font-size:28px;font-weight:600;color:#4a5878"><span style="width:12px;height:12px;border-radius:50%;background:#D6A13B"></span>${t}</div>`).join('')}
+ </div>
+ <svg class="abs" style="left:930px;top:470px" width="220" height="80"><path class="ar" d="M10,40 L190,40" stroke="#D6A13B" stroke-width="5" stroke-dasharray="14 12" fill="none" stroke-linecap="round"/><polyline class="ah" points="178,22 200,40 178,58" stroke="#D6A13B" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+ <div class="abs card ds" style="left:1180px;top:330px;width:600px;height:420px;padding:50px;text-align:center">
+   <div style="width:130px;height:130px;margin:0 auto;border-radius:28px;background:#e9eef6;display:flex;align-items:center;justify-content:center">${ico('play',72,'#05254E',1.6)}</div>
+   <div style="font-size:38px;font-weight:700;margin-top:32px;line-height:1.25">Apprentissage autonome en ligne</div>
+   <div class="nx pill red" style="margin-top:34px">${ico('xcircle',28,'#B71932',2)}Supports non adaptés</div>
+ </div>
+ <div class="abs ov" style="inset:0;background:#F7F7F9">
+   <div class="abs" style="left:140px;top:110px"><div class="tag red">Puis</div><div class="h2 h3" style="margin-top:22px;font-size:56px">${words('Une production digitale qui s’emballe')}</div></div>
+   <div class="abs" style="left:140px;top:330px;width:900px;display:grid;grid-template-columns:repeat(4,1fr);gap:22px">
+     ${prod.map((p,i)=>`<div class="pt card" style="height:150px;border-top:8px solid ${sty[i%4]};transform:rotate(${[-3,2,-1,4,-2,3,-4,1,2,-3,4,-1][i]}deg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:23px;font-weight:600">${ico(p==='Vidéo'?'video':p==='Module'?'layers':'file',40,sty[i%4],1.8)}${p}</div>`).join('')}
+   </div>
+   <div class="abs" style="left:1140px;top:330px;width:640px">
+     <div class="pp" style="display:flex;flex-direction:column;gap:18px">
+       <span class="pill red">${ico('slash',28,'#B71932',2)}Sans méthodologie pédagogique commune</span>
+       <span class="pill red">${ico('slash',28,'#B71932',2)}Sans stratégie de commercialisation</span>
+       <span class="pill red">${ico('shuffle',28,'#B71932',2)}Des productions hétérogènes</span>
+     </div>
+     <div class="cg card" style="margin-top:40px;padding:36px 40px">
+       <div style="display:flex;justify-content:space-between;align-items:center;font-size:27px;font-weight:700">Coûts de production <span>${ico('up',36,'#B71932',2.4)}</span></div>
+       <div style="height:22px;border-radius:11px;background:#eceef3;margin-top:22px;overflow:hidden"><div class="cb" style="height:100%;width:92%;background:linear-gradient(90deg,#D6A13B,#B71932);border-radius:11px;transform-origin:left"></div></div>
+     </div>
+   </div>
+ </div>
+ <div class="abs ov2" style="inset:0;background:radial-gradient(ellipse at 50% 40%,#0d3b74,#05254E 60%,#031b3b);display:flex;flex-direction:column;align-items:center;justify-content:center">
+   <div class="quote qq" style="font-size:58px;max-width:1600px">${words('FormaNova digitalise ses formations…')}<br><span style="color:#c9d3e6;font-weight:500">${words('mais ne transforme pas encore son expertise en une')}</span><br>${words('offre digitale différenciante et scalable.','goldtxt')}</div>
+ </div>
+ ${miniLogo(false)}`);
+ fadeIn(s.q('.tag'),t0+.3); wordsIn(s.q('.hd'),t0+.4,.05);
+ stagger(s.qa('.dc'),t0+.9,.2,(e,t)=>pop(e,t,.7));
+ stagger(s.qa('.fi'),t0+2.0,.35,(e,t)=>slideX(e,t,.7,-30));
+ A(s.q('.ar'),[{opacity:0,strokeDashoffset:0},{opacity:1,strokeDashoffset:-52}],t0+2.8,1,{e:E.lin});
+ s.qa('.ar').forEach(a=>A(a,[{strokeDashoffset:-52},{strokeDashoffset:-312}],t0+3.8,3,{e:E.lin,fill:'forwards'}));
+ fadeIn(s.q('.ah'),t0+3.3,.5);
+ slideX(s.q('.ds'),t0+3.3,.9,60); pop(s.q('.nx'),t0+4.5,.7);
+ const tb=t0+6.6;
+ A(s.q('.ov'),[{clipPath:'inset(0 0 0 100%)'},{clipPath:'inset(0 0 0 0%)'}],tb,.9,{e:E.inout});
+ fadeIn(s.q('.ov .tag'),tb+.5); wordsIn(s.q('.h3'),tb+.6,.05);
+ s.qa('.pt').forEach((e,i)=>pop(e,tb+.9+i*.12,.55));
+ stagger(s.qa('.pp .pill'),tb+1.4,.35,(e,t)=>slideX(e,t,.7,50));
+ fadeUp(s.q('.cg'),tb+2.3,.7,20); A(s.q('.cb'),[{transform:'scaleX(.1)'},{transform:'scaleX(1)'}],tb+2.5,1.4,{e:E.inout});
+ const tc=t0+10.6;
+ A(s.q('.ov2'),[{clipPath:'circle(0% at 50% 50%)'},{clipPath:'circle(75% at 50% 50%)'}],tc,1.0,{e:E.inout});
+ wordsIn(s.q('.qq'),tc+.5,.055);
+})();
+
+consequences(107.7,115.4,'03 · Développer',[['file','Des contenus difficilement adaptables au digital'],['clock','Une production pédagogique coûteuse et chronophage'],['shuffle','Des modules hétérogènes'],['users','Une expérience apprenant peu différenciante'],['tag','Une offre digitale difficile à commercialiser'],['down','Un potentiel de croissance et de rentabilité inexploité']]);
+
+solution(114.7,125.4,'03 · DÉVELOPPER','Transformer le catalogue de formation en une offre digitale différenciante, engageante et scalable.',[['search','Audit du catalogue'],['pen','Ingénierie pédagogique'],['video','Production digitale'],['monitor','Digitalisation'],['tag','Commercialisation'],['up','Optimisation de la performance e-learning']]);
+
+/* S16 — Récap */
+(()=>{const t0=124.7;
+ const cols=[['01','Structurer','Choisir et déployer le bon environnement numérique','monitor'],['02','Optimiser','Automatiser l’administratif et mesurer les acquis','zap'],['03','Développer','Créer une offre digitale différenciante et scalable','up']];
+ const s=scene(t0,132.4,'navy',`
+ <div class="abs" style="left:0;right:0;top:130px;text-align:center"><div class="tag" style="justify-content:center">L’accompagnement ANEORAS</div><div class="h2 hd" style="margin-top:26px">${words('Trois leviers pour une croissance')} ${words('maîtrisée','goldtxt')}</div></div>
+ <div class="abs" style="left:140px;top:400px;width:1640px;display:grid;grid-template-columns:repeat(3,1fr);gap:40px">
+  ${cols.map(([n,w,d,i])=>`<div class="rc" style="height:460px;border-radius:24px;background:rgba(255,255,255,.05);border:1.5px solid rgba(214,161,59,.35);padding:54px 46px;position:relative;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center"><span class="goldtxt" style="font-size:84px;font-weight:700;line-height:1">${n}</span>${ico(i,56,'#E7BC62',1.6)}</div>
+    <div style="font-size:52px;font-weight:700;margin-top:44px;letter-spacing:.02em">${w}</div>
+    <div style="font-size:29px;color:#c9d3e6;margin-top:20px;line-height:1.4">${d}</div>
+    <div class="rl" style="position:absolute;left:0;bottom:0;height:6px;width:100%;background:linear-gradient(90deg,#B88626,#F4D58A,#D6A13B);transform-origin:left"></div></div>`).join('')}
+ </div>
+ ${miniLogo(true)}`);
+ fadeIn(s.q('.tag'),t0+.3); wordsIn(s.q('.hd'),t0+.4,.07);
+ s.qa('.rc').forEach((c,i)=>{const t=t0+1.3+i*.45; A(c,[{opacity:0,transform:'translateY(70px)'},{opacity:1,transform:'none'}],t,.9); A(c.querySelector('.rl'),[{transform:'scaleX(0)'},{transform:'scaleX(1)'}],t+.4,1,{e:E.inout});});
+})();
+
+/* S17 — Outro */
+(()=>{const t0=131.7;
+ const s=scene(t0,null,'white',`
+ <div class="abs" style="left:0;right:0;top:230px;display:flex;justify-content:center;align-items:flex-end;gap:56px">
+   <div class="lg" style="position:relative;width:250px;height:218px">${logoIcon('#05254E')}</div>
+   <div style="padding-bottom:6px">${wordmark(['N','Ξ','O','R','Λ','S'],'#05254E',92,58)}</div>
+ </div>
+ <div class="abs tl" style="left:0;right:0;top:515px;text-align:center;font-size:28px;letter-spacing:.42em;color:#4a5878">VOTRE POTENTIEL. NOTRE STRATÉGIE.</div>
+ <div class="abs ex" style="left:0;right:0;top:640px;text-align:center;font-size:34px;font-weight:500;color:#05254E">Conseil <span class="gold">·</span> Formation <span class="gold">·</span> Transformation digitale</div>
+ <div class="abs" style="left:0;right:0;top:770px;display:flex;justify-content:center;gap:30px">
+   <div class="b1" style="background:#05254E;color:#fff;border-radius:14px;padding:30px 46px;font-size:30px;font-weight:600;display:flex;gap:18px;align-items:center;box-shadow:0 16px 40px rgba(5,37,78,.3)">Parlons de votre projet ${ico('arrow',32,'#fff',2.2)}</div>
+   <div class="b2" style="border:2.5px solid #D6A13B;color:#B88626;border-radius:14px;padding:30px 46px;font-size:30px;font-weight:600;display:flex;gap:18px;align-items:center">Réaliser mon diagnostic ${ico('arrow',32,'#D6A13B',2.2)}</div>
+ </div>
+ <div class="abs fo" style="inset:0;background:#000"></div>`);
+ animLogo(s.q('.lg'),t0+.4);
+ s.qa('.wm>div').forEach((l,i)=>A(l,[{opacity:0,transform:'translateX(-30px)'},{opacity:1,transform:'none'}],t0+1.6+i*.09,.8));
+ A(s.q('.tl'),[{opacity:0,letterSpacing:'.8em'},{opacity:1,letterSpacing:'.42em'}],t0+2.4,1.4);
+ fadeUp(s.q('.ex'),t0+3.0,.9,20);
+ pop(s.q('.b1'),t0+3.8,.8); pop(s.q('.b2'),t0+4.1,.8);
+ A(s.q('.b1 svg'),[{transform:'translateX(0)'},{transform:'translateX(8px)'}],t0+4.8,.5,{e:E.inout,it:12,dir:'alternate',fill:'forwards'});
+ A(s.q('.fo'),[{opacity:0},{opacity:1}],140.0,1.0,{e:E.inout});
+})();
+
+window.DURATION=141;
+window.seek=t=>{for(const a of ANIMS) a.currentTime=t*1000;for(const h of HOOKS)h(t);};
+window.ready=Promise.all([300,400,500,600,700].map(w=>document.fonts.load(w+' 40px Montserrat'))).then(()=>document.fonts.ready).then(()=>{seek(0);return true});
+</script>
+</body>
+</html>
