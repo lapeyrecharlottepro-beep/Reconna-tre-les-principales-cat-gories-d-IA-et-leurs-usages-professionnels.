@@ -1,0 +1,136 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS labyrinth</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="c" width="3840" height="2160"></canvas><canvas id="fx" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,F=2300,DUR=14;
+const bgc=document.getElementById('bg').getContext('2d'),c=document.getElementById('c').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+const shC=document.createElement('canvas');shC.width=W;shC.height=H;const sh=shC.getContext('2d');
+let seed=31337;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+// ---------- maze (DFS) ----------
+const NC=19,CS=420,HALF=NC*CS/2,WT=46,WH=170,mid=(NC-1)/2;
+const id=(i,j)=>i*NC+j;const open=new Set();const ok=(a,b)=>open.has(Math.min(a,b)+'_'+Math.max(a,b));
+{const vis=new Array(NC*NC).fill(false);const st=[[mid,mid]];vis[id(mid,mid)]=true;
+ while(st.length){const [i,j]=st[st.length-1];const nb=[[1,0],[-1,0],[0,1],[0,-1]].map(([a,b])=>[i+a,j+b]).filter(([a,b])=>a>=0&&b>=0&&a<NC&&b<NC&&!vis[id(a,b)]);
+  if(!nb.length){st.pop();continue}const [a,b]=nb[Math.floor(rnd()*nb.length)];vis[id(a,b)]=true;open.add(Math.min(id(i,j),id(a,b))+'_'+Math.max(id(i,j),id(a,b)));st.push([a,b]);}}
+// open a small plaza at the centre
+for(const [a,b] of [[0,1],[1,0]])for(let i=mid-1;i<=mid+1;i++)for(let j=mid-1;j<=mid+1;j++){const i2=i+a,j2=j+b;if(i2<=mid+1&&j2<=mid+1)open.add(Math.min(id(i,j),id(i2,j2))+'_'+Math.max(id(i,j),id(i2,j2)));}
+const cellPos=(i,j)=>[-HALF+CS*(i+.5),-HALF+CS*(j+.5)];
+// walls: one box per closed cell edge
+const walls=[];
+for(let i=0;i<=NC;i++)for(let j=0;j<NC;j++){ // walls along x-boundaries (vertical lines x = const)
+ if(i>0&&i<NC&&ok(id(i-1,j),id(i,j)))continue;walls.push({x:-HALF+CS*i,z:-HALF+CS*(j+.5),w:WT,d:CS+WT});}
+for(let i=0;i<NC;i++)for(let j=0;j<=NC;j++){if(j>0&&j<NC&&ok(id(i,j-1),id(i,j)))continue;walls.push({x:-HALF+CS*(i+.5),z:-HALF+CS*j,w:CS+WT,d:WT});}
+for(const w of walls){w.r=Math.hypot(w.x,w.z);w.ph=rnd();}
+// paths: BFS parents toward centre
+const par=new Array(NC*NC).fill(-1);{const q=[id(mid,mid)];par[id(mid,mid)]=id(mid,mid);while(q.length){const u=q.shift();const i=Math.floor(u/NC),j=u%NC;
+ for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const i2=i+a,j2=j+b;if(i2<0||j2<0||i2>=NC||j2>=NC)continue;const v=id(i2,j2);if(par[v]<0&&ok(u,v)){par[v]=u;q.push(v)}}}}
+const toC=u=>{const p=[u];while(p[p.length-1]!==id(mid,mid))p.push(par[p[p.length-1]]);return p};
+const deg=u=>{const i=Math.floor(u/NC),j=u%NC;return [[1,0],[-1,0],[0,1],[0,-1]].filter(([a,b])=>{const i2=i+a,j2=j+b;return i2>=0&&j2>=0&&i2<NC&&j2<NC&&ok(u,id(i2,j2))}).length};
+const border=[];for(let k=0;k<NC;k++)border.push(id(0,k),id(NC-1,k),id(k,0),id(k,NC-1));
+const deads=[...Array(NC*NC).keys()].filter(u=>deg(u)===1&&Math.hypot(Math.floor(u/NC)-mid,u%NC-mid)>3);
+function between(a,b){const pa=toC(a),pb=toC(b);const sb=new Set(pb);let k=0;while(!sb.has(pa[k]))k++;const lca=pa[k];return pa.slice(0,k+1).concat(pb.slice(0,pb.indexOf(lca)).reverse());}
+const routes=[];const pick=a=>a[Math.floor(rnd()*a.length)];
+for(let n=0;n<5;n++)routes.push({type:'gold',cells:toC(pick(border)),t0:1.8+n*1.5,sp:3.4});
+for(let n=0;n<5;n++){const s=pick(border);routes.push({type:'stop',cells:between(s,pick(deads)),t0:2.4+n*1.6,sp:3.2});}
+for(let n=0;n<4;n++){const p=toC(pick(border));routes.push({type:'frag',cells:p.slice(0,Math.max(6,Math.floor(p.length*(.45+rnd()*.25)))),t0:3+n*1.9,sp:3});}
+for(const r of routes){r.pts=r.cells.map(u=>cellPos(Math.floor(u/NC),u%NC));r.len=r.pts.length-1;r.fr=[...Array(r.len+1)].map(()=>rnd());}
+// dark zones that swallow parts of the maze
+const darks=[...Array(4)].map(()=>({x:(rnd()-.5)*HALF*1.6,z:(rnd()-.5)*HALF*1.6,r:900+rnd()*900,t:4+rnd()*6}));
+// ---------- camera (look-at) ----------
+let CAM;
+function setCam(t){const k=sm(t,0,DUR)*.75+t/DUR*.25;const dist=lerp(12500,2700,k),el=lerp(1.32,.56,k),az=lerp(.35,1.05,k);
+ const p=[Math.cos(az)*Math.cos(el)*dist,Math.sin(el)*dist,Math.sin(az)*Math.cos(el)*dist];const tg=[0,0,0];
+ let f=[tg[0]-p[0],tg[1]-p[1],tg[2]-p[2]];let n=Math.hypot(...f);f=f.map(v=>v/n);
+ let r=[f[2],0,-f[0]];n=Math.hypot(...r);r=r.map(v=>v/n);const u=[r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0]];
+ CAM={p,f,r,u};}
+function tr(q){const d=[q[0]-CAM.p[0],q[1]-CAM.p[1],q[2]-CAM.p[2]];return [d[0]*CAM.r[0]+d[1]*CAM.r[1]+d[2]*CAM.r[2],d[0]*CAM.u[0]+d[1]*CAM.u[1]+d[2]*CAM.u[2],d[0]*CAM.f[0]+d[1]*CAM.f[1]+d[2]*CAM.f[2]];}
+const pr=q=>[cx-q[0]*F/q[2],cy+q[1]*F/q[2]];
+const P=(x,y,z)=>{const q=tr([x,y,z]);return q[2]<50?null:pr(q)};
+function glow(g,x,y,r,col,a){if(a<=.005)return;const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,`rgba(${col},${a})`);gr.addColorStop(.35,`rgba(${col},${a*.35})`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();}
+function poly(g,pts){g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)g.lineTo(pts[i][0],pts[i][1]);g.closePath();}
+const LD=[.55,-1,.32]; // light direction (for shadows)
+function routePos(r,s){const k=cl(s,0,r.len);const i=Math.min(Math.floor(k),r.len-1),f=k-i;return [lerp(r.pts[i][0],r.pts[i+1][0],f),lerp(r.pts[i][1],r.pts[i+1][1],f)];}
+window.DURATION=DUR;
+window.seek=t=>{setCam(t);
+ const fade=sm(t,0,1.2);
+ // background + ground atmosphere
+ bgc.fillStyle='#03080f';bgc.fillRect(0,0,W,H);
+ const C0=P(0,0,0)||[cx,cy];
+ let g=bgc.createRadialGradient(C0[0],C0[1],0,C0[0],C0[1],W*.75);g.addColorStop(0,`rgba(26,52,84,${fade})`);g.addColorStop(.5,`rgba(14,32,54,${fade})`);g.addColorStop(1,'rgba(3,8,15,0)');bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ // ground plate of the maze
+ const corners=[[-HALF-80,-HALF-80],[HALF+80,-HALF-80],[HALF+80,HALF+80],[-HALF-80,HALF+80]].map(([x,z])=>P(x,0,z));
+ if(corners.every(Boolean)){poly(bgc,corners);bgc.fillStyle=`rgba(12,28,48,${.85*fade})`;bgc.fill();}
+ c.clearRect(0,0,W,H);fx.clearRect(0,0,W,H);sh.clearRect(0,0,W,H);c.lineCap=fx.lineCap='round';
+ // wall rise (ripple from the centre outward)
+ const riseOf=w=>sm(t,.3+w.r/HALF*1.6,1.3+w.r/HALF*1.6);
+ const darkOf=(x,z)=>{let d=0;for(const k of darks){const a=sm(t,k.t,k.t+3);if(a<=0)continue;const q=1-cl(Math.hypot(x-k.x,z-k.z)/k.r);d=Math.max(d,a*q*q*(3-2*q)*.85)}return d};
+ // ---- floor light: trails ----
+ const goldLit=[]; // corridor points lit gold
+ for(const r of routes){const s=(t-r.t0)*r.sp;if(s<=0)continue;
+  const head=Math.min(s,r.len);const tail=r.type==='gold'?0:Math.max(0,head-4.5);
+  let endA=1;if(r.type==='stop'&&s>r.len)endA=1-sm(s,r.len+.8,r.len+5);if(r.type==='frag')endA=1-sm(s,r.len*.7,r.len+2.5);
+  const col=r.type==='gold'?'232,190,110':'200,212,235';
+  for(let k=Math.floor(tail*4);k<Math.floor(head*4);k++){const a0=k/4,a1=(k+1)/4;
+   if(r.type==='frag'){const fr=r.fr[Math.floor(a0)];if(((k*7+Math.floor(t*6))%5===0)||fr>.62&&s>a0+1.5)continue;}
+   const p0=routePos(r,a0),p1=routePos(r,a1);const A=P(p0[0],2,p0[1]),B=P(p1[0],2,p1[1]);if(!A||!B)continue;
+   const age=head-a1;let a=r.type==='gold'?(.55+.45*Math.exp(-age*.6)):Math.exp(-age*.55);a*=endA*(1-darkOf(p0[0],p0[1])*.9);
+   const wd=Math.max(2,F/tr([p0[0],0,p0[1]])[2]*30);
+   bgc.strokeStyle=`rgba(${col},${a*.16})`;bgc.lineWidth=wd*5;bgc.lineCap='round';bgc.beginPath();bgc.moveTo(A[0],A[1]);bgc.lineTo(B[0],B[1]);bgc.stroke();
+   bgc.strokeStyle=`rgba(${col},${a*.85})`;bgc.lineWidth=wd*.9;bgc.beginPath();bgc.moveTo(A[0],A[1]);bgc.lineTo(B[0],B[1]);bgc.stroke();
+   if(r.type==='gold')goldLit.push(p0);}
+  // head
+  if(endA>.02){const hp=routePos(r,head);const Hh=P(hp[0],6,hp[1]);if(Hh){const sc=F/tr([hp[0],0,hp[1]])[2];
+   glow(fx,Hh[0],Hh[1],sc*260,r.type==='gold'?'240,200,120':'210,225,255',.55*endA);glow(fx,Hh[0],Hh[1],sc*60,'255,250,240',.95*endA);}}
+  // burgundy tension pulse where a route stops or breaks
+  if(r.type!=='gold'){const st=r.t0+r.len/r.sp;const pk=r.type==='stop'?st:st-.6;
+   for(let w=0;w<3;w++){const kk=(t-pk-w*.9)/2.6;if(kk<0||kk>1)continue;const hp=routePos(r,r.len);
+    const ring=[];for(let a=0;a<=40;a++){const an=a/40*Math.PI*2;const q=P(hp[0]+Math.cos(an)*kk*620,4,hp[1]+Math.sin(an)*kk*620);if(q)ring.push(q);}
+    if(ring.length>10){fx.strokeStyle=`rgba(183,60,58,${.55*(1-kk)})`;fx.lineWidth=Math.max(2,F/tr([hp[0],0,hp[1]])[2]*16);poly(fx,ring);fx.stroke();}
+    const Hc=P(hp[0],6,hp[1]);if(Hc)glow(fx,Hc[0],Hc[1],F/tr([hp[0],0,hp[1]])[2]*520,'147,50,49',.45*(1-kk));}}
+ }
+ // centre glow (reached by the gold routes)
+ const reached=routes.filter(r=>r.type==='gold'&&(t-r.t0)*r.sp>r.len).length;
+ if(C0)glow(fx,C0[0],C0[1],F/tr([0,0,0])[2]*(500+reached*160),'236,196,120',.18+reached*.09);
+ // ---- walls ----
+ const L=[];for(const w of walls){const rs=riseOf(w);if(rs<=.01)continue;const h=WH*rs;const q=tr([w.x,h/2,w.z]);if(q[2]<80)continue;L.push({w,h,d:q[2]});}
+ L.sort((a,b)=>b.d-a.d);
+ // shadows
+ sh.fillStyle='#000';
+ for(const {w,h} of L){const fp=[[w.x-w.w/2,w.z-w.d/2],[w.x+w.w/2,w.z-w.d/2],[w.x+w.w/2,w.z+w.d/2],[w.x-w.w/2,w.z+w.d/2]];
+  const s=h*2.1;const fp2=fp.map(([x,z])=>[x+LD[0]*s,z+LD[2]*s]);const pts=fp.concat(fp2).map(([x,z])=>P(x,1,z));if(pts.some(v=>!v))continue;
+  // convex hull of 8 points
+  const hp=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[],up=[];for(const p of hp){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)}
+  for(const p of hp.reverse()){while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p)}
+  poly(sh,lo.slice(0,-1).concat(up.slice(0,-1)));sh.fill();}
+ c.globalAlpha=.42*fade;c.drawImage(shC,0,0);c.globalAlpha=1;
+ const camP=CAM.p;
+ for(const {w,h} of L){const x0=w.x-w.w/2,x1=w.x+w.w/2,z0=w.z-w.d/2,z1=w.z+w.d/2;
+  const dk=darkOf(w.x,w.z);let gl=0;for(const p of goldLit){if(Math.abs(p[0]-w.x)<CS*.75&&Math.abs(p[1]-w.z)<CS*.75){gl=1;break}}
+  const V=[[x0,0,z0],[x1,0,z0],[x1,0,z1],[x0,0,z1],[x0,h,z0],[x1,h,z0],[x1,h,z1],[x0,h,z1]].map(v=>P(...v));if(V.some(v=>!v))continue;
+  const fog=cl(1-(tr([w.x,0,w.z])[2]-6000)/14000)*fade;const br=(1-dk)*fog;
+  const faces=[[[0,1,5,4],[0,0,-1]],[[2,3,7,6],[0,0,1]],[[1,2,6,5],[1,0,0]],[[3,0,4,7],[-1,0,0]]];
+  for(const [ix,n] of faces){const cxw=w.x+n[0]*w.w/2,czw=w.z+n[2]*w.d/2;if((camP[0]-cxw)*n[0]+(camP[2]-czw)*n[2]<=0)continue;
+   const lit=.55+.45*Math.max(0,-(n[0]*LD[0]+n[2]*LD[2]));const pts=ix.map(i=>V[i]);
+   const gr=c.createLinearGradient(...V[ix[0]],...V[ix[3]]);
+   const base=gl?[96,74,36]:[22,44,72];
+   gr.addColorStop(0,`rgba(${base[0]*.45*lit*br|0},${base[1]*.45*lit*br|0},${base[2]*.5*lit*br+4|0},1)`);gr.addColorStop(1,`rgba(${base[0]*lit*br|0},${base[1]*lit*br|0},${base[2]*lit*br+6|0},1)`);
+   c.fillStyle=gr;poly(c,pts);c.fill();}
+  // top
+  const top=[V[4],V[5],V[6],V[7]];c.fillStyle=gl?`rgba(${170*br|0},${134*br|0},${70*br|0},1)`:`rgba(${40*br|0},${70*br|0},${104*br|0},1)`;poly(c,top);c.fill();
+  // luminous top edges
+  const ea=br*(gl?.95:.45+.15*Math.sin(t*1.2+w.ph*6));const ew=Math.max(1,F/tr([w.x,h,w.z])[2]*7);
+  c.globalCompositeOperation='lighter';c.strokeStyle=gl?`rgba(240,200,120,${ea})`:`rgba(170,200,240,${ea*.7})`;c.lineWidth=ew;poly(c,top);c.stroke();
+  if(gl){c.strokeStyle=`rgba(214,161,59,${ea*.25})`;c.lineWidth=ew*5;poly(c,top);c.stroke();}
+  c.globalCompositeOperation='source-over';}
+ // volumetric light shafts
+ fx.save();fx.translate(W*.82,0);fx.rotate(.48);fx.translate(0,-3000);
+ for(const [o,w,a] of [[0,600,.06],[900,340,.045],[-800,420,.04]]){const lg=fx.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(200,220,255,0)');lg.addColorStop(.5,`rgba(210,225,255,${a*fade})`);lg.addColorStop(1,'rgba(200,220,255,0)');fx.fillStyle=lg;fx.fillRect(o-w,0,2*w,9000);}
+ fx.restore();
+ // vignette
+ const vg=fx.createRadialGradient(cx,cy,H*.45,cx,cy,W*.62);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0)');
+ c.globalCompositeOperation='source-over';const v2=c.createRadialGradient(cx,cy,H*.5,cx,cy,W*.6);v2.addColorStop(0,'rgba(3,8,15,0)');v2.addColorStop(1,'rgba(3,8,15,.55)');c.fillStyle=v2;c.fillRect(0,0,W,H);
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
