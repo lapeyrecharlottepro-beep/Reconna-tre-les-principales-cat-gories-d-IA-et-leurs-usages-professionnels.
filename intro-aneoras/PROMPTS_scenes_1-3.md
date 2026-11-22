@@ -24,6 +24,8 @@ Settings: 16:9, 4K (or 1080p then upscale), 24 fps, **no text, no logo, no subti
 **Already produced:** `ANEORAS_star_reveal_4K.mp4` (7 s, 3840×2160, 24 fps).
 It opens on a starry sky with the golden star at the center. Join it to the end of shot 3 with a cross-dissolve of about 0.5 s. That gives roughly 13 s + 7 s = 20 s.
 
+The final logo appears on the charter navy blue background (#05254E).
+
 Do not have the AI generate the logo: video generators distort typography. The reveal uses your original logo, faithfully.
 
 ---

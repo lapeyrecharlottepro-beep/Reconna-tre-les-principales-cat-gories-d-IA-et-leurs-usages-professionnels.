@@ -39,7 +39,7 @@ window.seek=t=>{
   const sp=t<2.6?ease(t/2.6):1;const fly=t*0.22+sp*0.35;
   const spaceA=1-smooth(t,2.2,2.9);
   // deep space gradient
-  c.fillStyle='#000';c.fillRect(0,0,W,H);if(spaceA>0){const bg=c.createRadialGradient(cx,cy,0,cx,cy,W*.7);bg.addColorStop(0,'rgb(11,26,56)');bg.addColorStop(1,'rgb(0,0,0)');c.globalAlpha=spaceA;c.fillStyle=bg;c.fillRect(0,0,W,H);c.globalAlpha=1;}
+  c.fillStyle='#000';c.fillRect(0,0,W,H);if(spaceA>0){const bg=c.createRadialGradient(cx,cy,0,cx,cy,W*.7);bg.addColorStop(0,'rgb(11,26,56)');bg.addColorStop(1,'rgb(0,0,0)');c.globalAlpha=spaceA;c.fillStyle=bg;c.fillRect(0,0,W,H);c.globalAlpha=1;}const navyA=smooth(t,2.6,3.2);if(navyA>0){c.globalAlpha=navyA;c.fillStyle='#05254E';c.fillRect(0,0,W,H);c.globalAlpha=1;}
   if(spaceA>0){for(const s of stars){let z=((s.z-fly)%1+1)%1+.02;const px=cx+s.x/z*W*.18,py=cy+s.y/z*W*.18;if(px<0||px>W||py<0||py>H)continue;
     const size=(1.2+s.b*2.4)*(.4+.6/z*.3);const a=Math.min(1,(1-z)*1.6)*(.35+.65*s.b)*spaceA;
     c.fillStyle=s.h>.85?`rgba(255,220,160,${a})`:`rgba(220,232,255,${a})`;c.beginPath();c.arc(px,py,Math.min(size,6),0,7);c.fill();}}
