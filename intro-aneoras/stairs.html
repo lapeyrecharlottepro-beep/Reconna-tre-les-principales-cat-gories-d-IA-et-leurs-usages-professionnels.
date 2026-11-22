@@ -1,0 +1,88 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS ascending path</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="c" width="3840" height="2160"></canvas><canvas id="fx" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,F=2300,DUR=15;
+const bgc=document.getElementById('bg').getContext('2d'),c=document.getElementById('c').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+let seed=1618;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+const eio=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+function sprite(col){const s=document.createElement('canvas');s.width=s.height=128;const g=s.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+ gr.addColorStop(0,`rgba(${col},1)`);gr.addColorStop(.12,`rgba(${col},.85)`);gr.addColorStop(.3,`rgba(${col},.25)`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.fillRect(0,0,128,128);return s;}
+const SG=sprite('240,196,115'),SW=sprite('255,248,232'),SR=sprite('160,52,52');
+function spr(img,x,y,r,a){if(a<=.004)return;fx.globalAlpha=Math.min(1,a);fx.drawImage(img,x-r,y-r,2*r,2*r);}
+// ---------- staircase ----------
+const N=16,STEPZ=430,RISE=175;
+const pathX=z=>Math.sin(z/2600)*520;
+const blocks=[...Array(N)].map((_,i)=>{const z=i*STEPZ;return {i,k:i/(N-1),x:pathX(z),y:i*RISE,z,w:980-i*8,d:STEPZ*.92,h:120+i*4};});
+// particles sampled on each block's surface (edges weighted)
+const EDG=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+function verts(b){const x0=b.x-b.w/2,x1=b.x+b.w/2,y0=b.y-b.h,y1=b.y,z0=b.z-b.d/2,z1=b.z+b.d/2;return [[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1],[x0,y1,z0],[x1,y1,z0],[x1,y1,z1],[x0,y1,z1]];}
+for(const b of blocks){const V=verts(b);b.parts=[];for(let n=0;n<300;n++){let p;if(rnd()<.55){const [a,c2]=EDG[Math.floor(rnd()*12)];const u=rnd();p=V[a].map((v,j)=>lerp(v,V[c2][j],u));}
+  else{const u=rnd(),v=rnd();p=rnd()<.6?[lerp(V[4][0],V[5][0],u),b.y,lerp(V[4][2],V[7][2],v)]:[lerp(V[0][0],V[1][0],u),lerp(b.y-b.h,b.y,v),b.z-b.d/2];}
+  const a=rnd()*6.28,r=600+rnd()*2600;b.parts.push({p,st:[p[0]+Math.cos(a)*r,p[1]+(rnd()-.35)*1800,p[2]+Math.sin(a)*r*.6],ph:rnd()*6.28,s:rnd(),j:[rnd()-.5,rnd()-.5,rnd()-.5]});}
+ b.arrive=.6+b.i*.32;}
+// ---------- camera: smooth forward climb ----------
+let CAM;
+function lookAt(p,tg){let f=[tg[0]-p[0],tg[1]-p[1],tg[2]-p[2]];let n=Math.hypot(...f);f=f.map(v=>v/n);let r=[f[2],0,-f[0]];n=Math.hypot(...r);r=r.map(v=>v/n);
+ const u=[r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0]];CAM={p,f,r,u};}
+const camZ=t=>lerp(-2600,(N-1)*STEPZ-2900,t/DUR*.55+sm(t,0,DUR)*.45);
+function setCam(t){const z=camZ(t);const step=z/STEPZ;const y=Math.max(0,step)*RISE+1450;const side=lerp(1150,750,sm(t,0,DUR));lookAt([pathX(z)+side+160*Math.sin(t*.18),y,z],[pathX(z+2600)-120,Math.max(0,(z+2600)/STEPZ)*RISE+300,z+2600]);}
+function tr(q){const d=[q[0]-CAM.p[0],q[1]-CAM.p[1],q[2]-CAM.p[2]];return [d[0]*CAM.r[0]+d[1]*CAM.r[1]+d[2]*CAM.r[2],d[0]*CAM.u[0]+d[1]*CAM.u[1]+d[2]*CAM.u[2],d[0]*CAM.f[0]+d[1]*CAM.f[1]+d[2]*CAM.f[2]];}
+const pr=q=>[cx-q[0]*F/q[2],cy+q[1]*F/q[2]];
+function poly(g,pts){g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)g.lineTo(pts[i][0],pts[i][1]);g.closePath();}
+const dust=[...Array(420)].map(()=>({p:[(rnd()-.5)*9000,(rnd()-.3)*5000,rnd()*9000-2500],s:rnd(),ph:rnd()*6.28}));
+const TOP=blocks[N-1];
+window.DURATION=DUR;
+window.seek=t=>{setCam(t);const fade=sm(t,0,1);
+ bgc.fillStyle='#050b14';bgc.fillRect(0,0,W,H);
+ let g=bgc.createRadialGradient(cx,cy*.7,0,cx,cy,W*.7);g.addColorStop(0,`rgba(26,48,76,${fade})`);g.addColorStop(1,'rgba(5,11,20,0)');bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ c.clearRect(0,0,W,H);fx.clearRect(0,0,W,H);fx.globalCompositeOperation='lighter';fx.lineCap=fx.lineJoin='round';
+ // summit light
+ {const q=tr([TOP.x,TOP.y+500,TOP.z+900]);if(q[2]>100){const Q=pr(q);const sc=F/q[2];spr(SG,Q[0],Q[1],sc*4200,.22*fade);spr(SW,Q[0],Q[1],sc*500,.55*fade*sm(t,3,8));}}
+ for(const d of dust){const q=tr(d.p);if(q[2]<200)continue;const Q=pr(q);spr(SG,Q[0],Q[1],Math.max(2,F/q[2]*12),.18*fade*(.5+.5*Math.sin(t*.8+d.ph)));}
+ // blocks far -> near
+ const L=blocks.map(b=>({b,d:tr([b.x,b.y-b.h/2,b.z])[2]})).filter(o=>o.d>120).sort((a,b)=>b.d-a.d);
+ for(const {b,d} of L){
+  const reach=(b.z-camZ(t));                       // distance ahead of the camera
+  const sol=cl(b.k*.95+.35*sm(-reach,-3800,-1200)-.05);   // later blocks are solid; every block firms up as the camera approaches
+  const form=sm(t,b.arrive,b.arrive+2.2);             // particles converge to build the pathway
+  const fog=cl(1-(d-4500)/9000)*fade;
+  const V=verts(b),T=V.map(tr);if(T.some(q=>q[2]<60))continue;const Pp=T.map(pr);
+  const faceA=sm(sol,.45,.95)*form*fog;const wireA=sm(sol,.12,.5)*form*fog*(1-.35*sm(sol,.8,1));
+  const vis=new Set();{const camP=CAM.p;for(const [ix,n] of [[[0,1,5,4],[0,0,-1]],[[1,2,6,5],[1,0,0]],[[3,0,4,7],[-1,0,0]],[[4,5,6,7],[0,1,0]],[[0,1,2,3],[0,-1,0]],[[2,3,7,6],[0,0,1]]]){const ctr=ix.map(i=>V[i]).reduce((s,p)=>[s[0]+p[0]/4,s[1]+p[1]/4,s[2]+p[2]/4],[0,0,0]);if((camP[0]-ctr[0])*n[0]+(camP[1]-ctr[1])*n[1]+(camP[2]-ctr[2])*n[2]>0)for(let q=0;q<4;q++){const a=ix[q],b2=ix[(q+1)%4];vis.add(Math.min(a,b2)+'_'+Math.max(a,b2))}}}
+  // faces (metallic gold, navy-tinted shadows)
+  if(faceA>.01){const camP=CAM.p;
+   for(const [ix,n] of [[[0,1,5,4],[0,0,-1]],[[1,2,6,5],[1,0,0]],[[3,0,4,7],[-1,0,0]],[[4,5,6,7],[0,1,0]],[[0,1,2,3],[0,-1,0]]]){
+    const ctr=ix.map(i=>V[i]).reduce((s,p)=>[s[0]+p[0]/4,s[1]+p[1]/4,s[2]+p[2]/4],[0,0,0]);if((camP[0]-ctr[0])*n[0]+(camP[1]-ctr[1])*n[1]+(camP[2]-ctr[2])*n[2]<=0)continue;
+    const pts=ix.map(i=>Pp[i]);const top=n[1]>0,bot=n[1]<0;
+    const gr=c.createLinearGradient(pts[0][0],pts[0][1],pts[2][0],pts[2][1]);
+    if(top){gr.addColorStop(0,`rgba(168,128,62,${faceA})`);gr.addColorStop(.5,`rgba(226,184,112,${faceA})`);gr.addColorStop(1,`rgba(150,112,52,${faceA})`);}
+    else if(bot){gr.addColorStop(0,`rgba(20,30,46,${faceA})`);gr.addColorStop(1,`rgba(34,44,60,${faceA})`);}
+    else if(n[2]<0){gr.addColorStop(0,`rgba(92,68,32,${faceA})`);gr.addColorStop(1,`rgba(188,146,78,${faceA})`);}
+    else{gr.addColorStop(0,`rgba(60,48,32,${faceA})`);gr.addColorStop(1,`rgba(128,98,52,${faceA})`);}
+    c.fillStyle=gr;poly(c,pts);c.fill();}
+   // subtle burgundy accent line along the front face
+   const a1=[lerp(Pp[0][0],Pp[4][0],.25),lerp(Pp[0][1],Pp[4][1],.25)],a2=[lerp(Pp[1][0],Pp[5][0],.25),lerp(Pp[1][1],Pp[5][1],.25)];
+   c.strokeStyle=`rgba(147,50,49,${.75*faceA})`;c.lineWidth=Math.max(1.5,F/d*7);c.beginPath();c.moveTo(...a1);c.lineTo(...a2);c.stroke();}
+  // luminous edges (precise lines)
+  if(wireA>.01){const ew=Math.max(1.2,F/d*3.6);for(const [a,b2] of EDG){const hid=vis.has(Math.min(a,b2)+'_'+Math.max(a,b2))?1:1-sm(sol,.5,.8);if(hid<=.01)continue;const wireA0=wireA;{const wireA=wireA0*hid;fx.globalAlpha=1;fx.strokeStyle=`rgba(214,161,59,${.25*wireA})`;fx.lineWidth=ew*4;fx.beginPath();fx.moveTo(...Pp[a]);fx.lineTo(...Pp[b2]);fx.stroke();
+    fx.strokeStyle=`rgba(252,234,190,${.85*wireA})`;fx.lineWidth=ew;fx.beginPath();fx.moveTo(...Pp[a]);fx.lineTo(...Pp[b2]);fx.stroke();}}
+   // light running along the top front edge
+   const q=(t*.5+b.i*.17)%1;const Q=[lerp(Pp[4][0],Pp[5][0],q),lerp(Pp[4][1],Pp[5][1],q)];spr(SW,Q[0],Q[1],F/d*30,.9*wireA);spr(SG,Q[0],Q[1],F/d*120,.4*wireA);}
+  // particles: dominant on the first blocks, fading as blocks solidify
+  const pa=(1-sm(sol,.35,.9))*fog;
+  if(pa>.01||form<1){for(const p of b.parts){const k=eio(sm(t,b.arrive+p.s*.6,b.arrive+p.s*.6+2.2));const jit=(1-sol)*45;
+    const w=[lerp(p.st[0],p.p[0],k)+Math.sin(t*1.3+p.ph)*jit*p.j[0]*2,lerp(p.st[1],p.p[1],k)+Math.sin(t*1.1+p.ph)*jit*p.j[1]*2,lerp(p.st[2],p.p[2],k)+Math.cos(t*1.2+p.ph)*jit*p.j[2]*2];
+    const q=tr(w);if(q[2]<80)continue;const Q=pr(q);const sc=F/q[2];const a=fog*(k<1?.9:pa)*(.7+.3*Math.sin(t*2+p.ph))*sm(t,0,.8);if(a<=.01)continue;
+    const r=Math.max(2.2,(4+p.s*5)*sc);spr(SG,Q[0],Q[1],r*2.6,.4*a);spr(SW,Q[0],Q[1],r*.55,.85*a);}}
+ }
+ fx.globalAlpha=1;
+ // volumetric shafts from the summit + vignette
+ fx.save();fx.translate(W*.62,-300);fx.rotate(.22);
+ for(const [o,w,a] of [[0,620,.05],[-900,320,.035],[800,360,.03]]){const lg=fx.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(255,230,180,0)');lg.addColorStop(.5,`rgba(255,236,200,${a*fade})`);lg.addColorStop(1,'rgba(255,230,180,0)');fx.fillStyle=lg;fx.fillRect(o-w,0,2*w,3600);}
+ fx.restore();fx.globalCompositeOperation='source-over';
+ const v2=fx.createRadialGradient(cx,cy,H*.45,cx,cy,W*.62);v2.addColorStop(0,'rgba(4,9,16,0)');v2.addColorStop(1,'rgba(4,9,16,.6)');fx.fillStyle=v2;fx.fillRect(0,0,W,H);
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
