@@ -1,0 +1,112 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS human + AI</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="fx" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,F=2300,DUR=15;
+const bgc=document.getElementById('bg').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+let seed=5150;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+function sprite(col){const s=document.createElement('canvas');s.width=s.height=128;const g=s.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+ gr.addColorStop(0,`rgba(${col},1)`);gr.addColorStop(.12,`rgba(${col},.85)`);gr.addColorStop(.3,`rgba(${col},.25)`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.fillRect(0,0,128,128);return s;}
+const SG=sprite('240,196,115'),SW=sprite('255,248,232'),SB=sprite('110,160,255'),SR=sprite('176,58,70'),SBW=sprite('210,228,255');
+function spr(img,x,y,r,a){if(a<=.004)return;fx.globalAlpha=Math.min(1,a);fx.drawImage(img,x-r,y-r,2*r,2*r);}
+// ---------- camera (slow orbit) ----------
+let CAM;
+function lookAt(p,tg){let f=[tg[0]-p[0],tg[1]-p[1],tg[2]-p[2]];let n=Math.hypot(...f);f=f.map(v=>v/n);let r=[f[2],0,-f[0]];n=Math.hypot(...r);r=r.map(v=>v/n);
+ const u=[r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0]];CAM={p,f,r,u};}
+function setCam(t){const az=Math.PI/2+lerp(.3,-.3,t/DUR*.5+sm(t,0,DUR)*.5),dist=lerp(3200,2750,sm(t,0,DUR)),el=.08;
+ const tg=[0,1150,0];lookAt([tg[0]+Math.cos(az)*Math.cos(el)*dist,tg[1]+Math.sin(el)*dist,tg[2]+Math.sin(az)*Math.cos(el)*dist],tg);}
+function tr(q){const d=[q[0]-CAM.p[0],q[1]-CAM.p[1],q[2]-CAM.p[2]];return [d[0]*CAM.r[0]+d[1]*CAM.r[1]+d[2]*CAM.r[2],d[0]*CAM.u[0]+d[1]*CAM.u[1]+d[2]*CAM.u[2],d[0]*CAM.f[0]+d[1]*CAM.f[1]+d[2]*CAM.f[2]];}
+const pr=q=>[cx-q[0]*F/q[2],cy+q[1]*F/q[2]];
+// ---------- human bust (gold particles) ----------
+const hum=[];
+function addP(x,y,z,w){hum.push({b:[x,y,z],sc:[(rnd()-.5)*3000,(rnd()-.3)*2200,(rnd()-.5)*2400],s:rnd(),ph:rnd()*6.28,w,blue:rnd()<.06,d:rnd()});}
+for(let i=0;i<1500;i++){const u=rnd()*2-1,a=rnd()*6.28,r=Math.sqrt(1-u*u);const k=Math.pow(rnd(),.15);addP(r*Math.cos(a)*165*k,1500+u*215*k,r*Math.sin(a)*185*k,1);} // head
+for(let i=0;i<220;i++){const a=rnd()*6.28,y=1215+rnd()*110;addP(Math.cos(a)*78,y,Math.sin(a)*72,1);} // neck
+const wOf=y=>y>1200?lerp(105,90,(y-1200)/40):y>930?105+390*Math.pow(Math.max(0,1-Math.pow((y-930)/275,2)),.5):495-(930-y)*.12;
+for(let i=0;i<2800;i++){const y=480+rnd()*720;if(y>1240)continue;const w=wOf(y),a=rnd()*6.28;const k=Math.pow(rnd(),.12);const dp=y>930?.45:.5;addP(Math.cos(a)*w*k,y,Math.sin(a)*Math.min(w,230)*dp*1.6*k*.62,cl((y-480)/300));}
+const HY=.12; // yaw toward the right
+// ---------- AI structure (geodesic) ----------
+const PHI=(1+Math.sqrt(5))/2;let IV=[[-1,PHI,0],[1,PHI,0],[-1,-PHI,0],[1,-PHI,0],[0,-1,PHI],[0,1,PHI],[0,-1,-PHI],[0,1,-PHI],[PHI,0,-1],[PHI,0,1],[-PHI,0,-1],[-PHI,0,1]].map(v=>{const n=Math.hypot(...v);return v.map(x=>x/n)});
+const IF=[[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],[1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],[3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],[4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+function subdiv(V,Fc){const Vs=V.slice(),cache={},mid=(a,b)=>{const k=a<b?a+'_'+b:b+'_'+a;if(cache[k]!=null)return cache[k];const m=V[a].map((x,i)=>(x+V[b][i])/2);const n=Math.hypot(...m);Vs.push(m.map(x=>x/n));return cache[k]=Vs.length-1};
+ const NF=[];for(const [a,b,c] of Fc){const ab=mid(a,b),bc=mid(b,c),ca=mid(c,a);NF.push([a,ab,ca],[b,bc,ab],[c,ca,bc],[ab,bc,ca]);}return [Vs,NF];}
+const [GV,GF]=subdiv(IV,IF);const edges=(Fc)=>{const s=new Set(),E=[];for(const f of Fc)for(let i=0;i<3;i++){const a=f[i],b=f[(i+1)%3],k=a<b?a+'_'+b:b+'_'+a;if(!s.has(k)){s.add(k);E.push([a,b])}}return E};
+const GE=edges(GF),IE=edges(IF);const GEo=GE.map(()=>rnd()),IEo=IE.map(()=>rnd()),GVo=GV.map(()=>({r:rnd(),gold:rnd()<.3}));
+const ring=(n)=>[...Array(n)].map((_,i)=>[Math.cos(i/n*6.283),0,Math.sin(i/n*6.283)]);
+function rotY(v,a){const c=Math.cos(a),s=Math.sin(a);return [v[0]*c-v[2]*s,v[1],v[0]*s+v[2]*c]}
+function rotX(v,a){const c=Math.cos(a),s=Math.sin(a);return [v[0],v[1]*c-v[2]*s,v[1]*s+v[2]*c]}
+function rotZ(v,a){const c=Math.cos(a),s=Math.sin(a);return [v[0]*c-v[1]*s,v[0]*s+v[1]*c,v[2]]}
+// bridge strands
+const strands=[...Array(6)].map((_,i)=>({oy:(i-2.5)*26,oz:(rnd()-.5)*70,lift:330+rnd()*120,ph:rnd()*6.28}));
+const flow=[...Array(260)].map(()=>({st:Math.floor(rnd()*6),u0:rnd(),sp:.08+rnd()*.07,dir:rnd()<.5?1:-1,s:rnd()}));
+const dust=[...Array(500)].map(()=>({p:[(rnd()-.5)*9000,rnd()*3600-400,(rnd()-.5)*9000],s:rnd(),ph:rnd()*6.28}));
+window.DURATION=DUR;
+window.seek=t=>{setCam(t);const fade=sm(t,0,1.4);
+ // positions: slowly approaching each other
+ const app=sm(t,1.5,11);const HX=lerp(-1250,-820,app),AX=lerp(1250,820,app);const AC=[AX,1180,0];
+ const meet=sm(t,6.2,9.2);const joined=sm(t,9,10.5);
+ bgc.fillStyle='#02060c';bgc.fillRect(0,0,W,H);
+ const C0=pr(tr([0,1100,0]));let g=bgc.createRadialGradient(C0[0],C0[1],0,C0[0],C0[1],W*.7);g.addColorStop(0,`rgba(${22+10*joined|0},${42+8*joined|0},${74+4*joined|0},${fade})`);g.addColorStop(1,'rgba(2,6,12,0)');bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ fx.clearRect(0,0,W,H);fx.globalCompositeOperation='lighter';fx.lineCap='round';
+ // floor reflection pools + faint horizon line
+ for(const [x,col,a] of [[HX,'214,161,59',.12],[AX,'90,130,230',.10],[0,'240,220,180',.12*joined]]){const q=tr([x,0,0]);if(q[2]<100)continue;const Q=pr(q);const sc=F/q[2];
+  fx.save();fx.translate(Q[0],Q[1]);fx.scale(1,.22);const gr=fx.createRadialGradient(0,0,0,0,0,sc*1300);gr.addColorStop(0,`rgba(${col},${a*fade})`);gr.addColorStop(1,`rgba(${col},0)`);fx.globalAlpha=1;fx.fillStyle=gr;fx.fillRect(-sc*1300,-sc*1300,sc*2600,sc*2600);fx.restore();}
+ // dust
+ for(const d of dust){const q=tr([d.p[0]+Math.sin(t*.2+d.ph)*60,d.p[1]+t*12,d.p[2]]);if(q[2]<200)continue;const Q=pr(q);spr(SBW,Q[0],Q[1],Math.max(2,F/q[2]*10),.25*fade*(.5+.5*Math.sin(t+d.ph))*cl(1-(q[2]-3000)/8000));}
+ // ---------- AI structure ----------
+ const build=sm(t,.8,4.2);const rot=t*.16;
+ const gw=GV.map(v=>{let p=rotY(rotX(v,.25),rot);return [AC[0]+p[0]*400,AC[1]+p[1]*400,AC[2]+p[2]*400]});const gq=gw.map(tr),gp=gq.map(pr);
+ const iw=IV.map(v=>{let p=rotX(rotY(v,-rot*1.6),.4);return [AC[0]+p[0]*230,AC[1]+p[1]*230,AC[2]+p[2]*230]});const iq=iw.map(tr),ip=iq.map(pr);
+ const ai=fade;
+ for(let i=0;i<GE.length;i++){const [a,b]=GE[i];const k=sm(build,GEo[i]*.7,GEo[i]*.7+.3);if(k<=0)continue;const A=gp[a],B=[lerp(gp[a][0],gp[b][0],k),lerp(gp[a][1],gp[b][1],k)];
+  const z=(gq[a][2]+gq[b][2])/2;const depth=cl(1-(z-3200)/1800);const col=i%3?'95,140,255':'190,62,84';
+  fx.globalAlpha=1;fx.strokeStyle=`rgba(${col},${.22*ai*(.4+.6*depth)})`;fx.lineWidth=F/z*12;fx.beginPath();fx.moveTo(A[0],A[1]);fx.lineTo(B[0],B[1]);fx.stroke();
+  fx.strokeStyle=`rgba(${i%3?'190,215,255':'235,140,150'},${.7*ai*(.4+.6*depth)})`;fx.lineWidth=Math.max(1.2,F/z*2.6);fx.beginPath();fx.moveTo(A[0],A[1]);fx.lineTo(B[0],B[1]);fx.stroke();}
+ for(let i=0;i<IE.length;i++){const [a,b]=IE[i];const k=sm(build,.3+IEo[i]*.5,.6+IEo[i]*.4);if(k<=0)continue;const z=iq[a][2];
+  fx.strokeStyle=`rgba(176,58,70,${.75*ai})`;fx.lineWidth=Math.max(1.4,F/z*3.4);fx.beginPath();fx.moveTo(ip[a][0],ip[a][1]);fx.lineTo(lerp(ip[a][0],ip[b][0],k),lerp(ip[a][1],ip[b][1],k));fx.stroke();}
+ // orbital rings
+ for(const [tilt,rr,sp,col] of [[.5,580,.25,'120,165,255'],[-.35,630,-.18,'176,58,70']]){const pts=ring(90).map(v=>{const p=rotY(rotZ(v,tilt),t*sp);return pr(tr([AC[0]+p[0]*rr,AC[1]+p[1]*rr,AC[2]+p[2]*rr]))});
+  const k=sm(t,2+Math.abs(tilt),4.5);fx.strokeStyle=`rgba(${col},${.45*ai})`;fx.lineWidth=2.4;fx.beginPath();const n=Math.floor(pts.length*k);for(let i=0;i<n;i++){i?fx.lineTo(...pts[i]):fx.moveTo(...pts[i])}fx.stroke();
+  if(n>0){const m=pts[(Math.floor(t*12))%Math.max(1,n)];spr(SBW,m[0],m[1],30,.8*ai);}}
+ // nodes (some turn gold once the bridge is formed: complementarity)
+ GV.forEach((v,i)=>{const z=gq[i][2];const k=sm(build,GVo[i].r*.8,GVo[i].r*.8+.25);if(k<=0)return;const sc=F/z;const depth=cl(1-(z-3200)/1800);const g2=GVo[i].gold?joined:0;
+  spr(SB,gp[i][0],gp[i][1],sc*70,.5*k*ai*(1-g2)*(.5+.5*depth));spr(SG,gp[i][0],gp[i][1],sc*80,.6*k*ai*g2);spr(SBW,gp[i][0],gp[i][1],sc*20,.9*k*ai);});
+ const AQ=pr(tr(AC));{const sc=F/tr(AC)[2];spr(SB,AQ[0],AQ[1],sc*520,.28*ai*(.8+.2*Math.sin(t*1.3)));spr(SBW,AQ[0],AQ[1],sc*90,.75*ai);}
+ // ---------- human ----------
+ const form=t=>sm(t,.4,4.4);
+ const cy_=Math.cos(HY),sy_=Math.sin(HY);
+ for(const p of hum){const f=sm(form(t),p.d*.35,p.d*.35+.65);if(f<=0)continue;const br=1+.012*Math.sin(t*1.1);
+  let b=[p.b[0]*br,p.b[1],p.b[2]*br];b=[b[0]*cy_-b[2]*sy_,b[1],b[0]*sy_+b[2]*cy_];
+  const w=[lerp(HX+p.sc[0],HX+b[0],f),lerp(1100+p.sc[1],b[1],f),lerp(p.sc[2],b[2],f)];
+  w[0]+=Math.sin(t*.7+p.ph)*6;w[1]+=Math.sin(t*.9+p.ph)*6;
+  const q=tr(w);if(q[2]<100)continue;const Q=pr(q);const sc=F/q[2];const tw=.75+.25*Math.sin(t*2+p.ph);const a=fade*tw*p.w*(.35+.65*f);
+  const r=Math.max(2.4,(4.5+p.s*5)*sc);const bl=p.blue?joined:0;
+  spr(SG,Q[0],Q[1],r*2.6,.38*a*(1-bl));spr(SB,Q[0],Q[1],r*2.6,.5*a*bl);spr(SW,Q[0],Q[1],r*.55,.85*a);}
+ // soft inner warmth of the figure
+ {const q=tr([HX,1250,0]);const Q=pr(q);const sc=F/q[2];spr(SG,Q[0],Q[1],sc*900,.12*fade*sm(t,2,5));}
+ // ---------- luminous bridge ----------
+ const S0=[HX+330,1110,0],S1=[AX-430,1180,0];
+ const bz=(st,u)=>{const C=[(S0[0]+S1[0])/2,(S0[1]+S1[1])/2+st.lift+Math.sin(t*.6+st.ph)*20,st.oz];const v=[0,1,2].map(i=>(1-u)*(1-u)*S0[i]+2*(1-u)*u*C[i]+u*u*S1[i]);v[1]+=st.oy;return v;};
+ if(meet>0){for(const st of strands){const N=60;for(let i=0;i<N;i++){const u0=i/N,u1=(i+1)/N;const fromL=u1<=meet*.5,fromR=u0>=1-meet*.5;if(!fromL&&!fromR&&joined<=0)continue;
+   const A=pr(tr(bz(st,u0))),B=pr(tr(bz(st,u1)));const z=tr(bz(st,u0))[2];const mix=u0;const col=joined>0?(fromL||fromR?null:null):null;
+   const cG=[240,200,125],cB=[140,175,255];const cc=cG.map((v,j)=>Math.round(lerp(v,cB[j],mix)));const cW=[255,244,220];const c2=cc.map((v,j)=>Math.round(lerp(v,cW[j],joined*Math.exp(-Math.pow((u0-.5)/.22,2)))));
+   const al=(fromL||fromR?1:joined)*.8;fx.globalAlpha=1;
+   fx.strokeStyle=`rgba(${c2},${al*.18})`;fx.lineWidth=F/z*16;fx.beginPath();fx.moveTo(A[0],A[1]);fx.lineTo(B[0],B[1]);fx.stroke();
+   fx.strokeStyle=`rgba(${c2},${al*.85})`;fx.lineWidth=Math.max(1.2,F/z*2.8);fx.beginPath();fx.moveTo(A[0],A[1]);fx.lineTo(B[0],B[1]);fx.stroke();}
+  // advancing tips
+  if(joined<1){for(const u of [meet*.5,1-meet*.5]){const P2=pr(tr(bz(strands[2],u)));spr(u<.5?SG:SB,P2[0],P2[1],60,.7*(1-joined));spr(SW,P2[0],P2[1],18,.9*(1-joined));}}}
+  // meeting pulse
+  const mp=Math.exp(-Math.pow((t-9.3)/.6,2));const M=pr(tr(bz(strands[2],.5)));spr(SW,M[0],M[1],140*mp+30*joined,.45*mp+.3*joined);spr(SG,M[0],M[1],520*mp+200*joined,.2*mp+.12*joined);}
+ // flowing shared intelligence (both directions)
+ if(joined>0)for(const f of flow){let u=(f.u0+t*f.sp*f.dir)%1;if(u<0)u+=1;const P2=pr(tr(bz(strands[f.st],u)));const a=joined*Math.sin(Math.PI*u);
+  spr(f.dir>0?SG:SB,P2[0],P2[1],16+f.s*14,.6*a);spr(SW,P2[0],P2[1],5+f.s*4,.85*a);}
+ fx.globalAlpha=1;fx.globalCompositeOperation='source-over';
+ // volumetric light from above + vignette
+ fx.save();fx.globalCompositeOperation='lighter';fx.translate(W*.5,-200);fx.rotate(.08);
+ for(const [o,w,a] of [[0,700,.05+.03*joined],[-900,300,.03],[900,300,.03]]){const lg=fx.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(220,230,255,0)');lg.addColorStop(.5,`rgba(230,235,255,${a*fade})`);lg.addColorStop(1,'rgba(220,230,255,0)');const vg=fx.createLinearGradient(0,0,0,2600);fx.fillStyle=lg;fx.fillRect(o-w,0,2*w,2600);}
+ fx.restore();
+ const v2=fx.createRadialGradient(cx,cy,H*.45,cx,cy,W*.62);v2.addColorStop(0,'rgba(2,6,12,0)');v2.addColorStop(1,'rgba(2,6,12,.6)');fx.fillStyle=v2;fx.fillRect(0,0,W,H);
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
