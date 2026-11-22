@@ -1,0 +1,68 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS network opening</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="c" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,F=2100,DUR=12;
+const bgc=document.getElementById('bg').getContext('2d'),c=document.getElementById('c').getContext('2d');
+let seed=1977;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)};
+// nodes in a deep volume, denser toward the axis of travel
+const N=1100,nodes=[];
+for(let i=0;i<N;i++){const r=Math.pow(rnd(),.75)*3600,a=rnd()*Math.PI*2;
+ nodes.push({x:Math.cos(a)*r*1.5,y:Math.sin(a)*r*.95,z:300+rnd()*11000,s:rnd(),ap:.2+Math.pow(rnd(),1.3)*4.2,gold:rnd()<.35,ph:rnd()*6.28});}
+// edges: k nearest neighbours, revealed progressively (density grows over time)
+const edges=[];const key=new Set();
+for(let i=0;i<N;i++){const a=nodes[i];const d=[];for(let j=0;j<N;j++){if(i===j)continue;const b=nodes[j];const dx=a.x-b.x,dy=a.y-b.y,dz=(a.z-b.z)*.55;d.push([dx*dx+dy*dy+dz*dz,j]);}
+ d.sort((p,q)=>p[0]-q[0]);for(let k=0;k<4;k++){const j=d[k][1],kk=i<j?i+'_'+j:j+'_'+i;if(key.has(kk)||d[k][0]>1500*1500)continue;key.add(kk);
+  const u=rnd();edges.push({a:i,b:j,t0:Math.max(nodes[i].ap,nodes[j].ap)+.4+Math.pow(u,.9)*7.5,dur:.7+rnd()*.9,pulse:rnd()<.09,gp:rnd()<.12,ph:rnd(),sp:.25+rnd()*.35});}}
+const camAt=t=>{const k=t/DUR;return {z:-200+4600*(k*k*(3-2*k))*.35+4600*k*.65, x:Math.sin(t*.25)*140, y:Math.cos(t*.2)*80, roll:Math.sin(t*.18)*.035}};
+function proj(p,cam){const dz=p.z-cam.z;if(dz<60)return null;let x=p.x-cam.x,y=p.y-cam.y;const cr=Math.cos(cam.roll),sr=Math.sin(cam.roll);
+ const rx=x*cr-y*sr,ry=x*sr+y*cr;return {x:cx+rx*F/dz,y:cy+ry*F/dz,dz,sc:F/dz};}
+const depthA=dz=>cl((dz-90)/700)*cl(1-(dz-2500)/8500);
+function glow(g,x,y,r,col,a){const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,`rgba(${col},${a})`);gr.addColorStop(.35,`rgba(${col},${a*.35})`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();}
+window.DURATION=DUR;
+window.seek=t=>{
+ const cam=camAt(t);const fadeIn=sm(t,0,1.6);
+ // background: deep navy #1E354D with vignette, volumetric light
+ bgc.fillStyle='#050b14';bgc.fillRect(0,0,W,H);
+ let g=bgc.createRadialGradient(cx,cy*0.95,0,cx,cy,W*.62);g.addColorStop(0,'rgba(30,53,77,1)');g.addColorStop(.55,'rgba(22,40,60,.9)');g.addColorStop(1,'rgba(5,11,20,0)');
+ bgc.globalAlpha=fadeIn;bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ // soft volumetric shafts from top-right
+ bgc.save();bgc.translate(W*.78,0);bgc.rotate(.55);bgc.translate(0,-3000);
+ for(const [o,w,a] of [[0,520,.07],[700,300,.05],[-600,380,.045]]){const lg=bgc.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(255,235,200,0)');lg.addColorStop(.5,`rgba(255,235,200,${a*fadeIn*(.8+.2*Math.sin(t*.5+o))})`);lg.addColorStop(1,'rgba(255,235,200,0)');
+  const vg=bgc.createLinearGradient(0,0,0,3200);bgc.fillStyle=lg;bgc.fillRect(o-w,0,2*w,9000);}
+ bgc.restore();
+ // distant core light the camera travels toward
+ glow(bgc,cx+cam.x*-.05,cy,1500,'214,170,95',.10*fadeIn*(.6+.4*sm(t,4,DUR)));
+ bgc.globalAlpha=1;
+ c.clearRect(0,0,W,H);
+ const P=nodes.map(n=>proj(n,cam));
+ // connections
+ c.lineCap='round';
+ for(const e of edges){const k=sm(t,e.t0,e.t0+e.dur);if(k<=0)continue;const A=P[e.a],B=P[e.b];if(!A||!B)continue;
+  const da=Math.min(depthA(A.dz),depthA(B.dz));if(da<=.01)continue;
+  const x2=A.x+(B.x-A.x)*k,y2=A.y+(B.y-A.y)*k;const w=Math.max(.8,Math.min(5,(A.sc+B.sc)*1.1));
+  if((A.x<-400&&x2<-400)||(A.x>W+400&&x2>W+400)||(A.y<-400&&y2<-400)||(A.y>H+400&&y2>H+400))continue;
+  const a=.42*da*fadeIn;
+  c.strokeStyle=`rgba(214,170,95,${a*.35})`;c.lineWidth=w*3.2;c.beginPath();c.moveTo(A.x,A.y);c.lineTo(x2,y2);c.stroke();
+  c.strokeStyle=`rgba(236,200,130,${a})`;c.lineWidth=w;c.beginPath();c.moveTo(A.x,A.y);c.lineTo(x2,y2);c.stroke();
+  // head spark while drawing
+  if(k<1)glow(c,x2,y2,w*9,'255,240,210',.8*da*fadeIn);
+  // burgundy pulse travelling along the connection
+  if(e.pulse&&k>=1&&t>3){const q=((t*e.sp+e.ph)%1.6);if(q<1){const px=A.x+(B.x-A.x)*q,py=A.y+(B.y-A.y)*q;const r=Math.max(6,(A.sc+B.sc)*14);
+    glow(c,px,py,r*2.6,'147,50,49',.9*da);glow(c,px,py,r*.9,'215,95,90',.75*da);glow(c,px,py,r*.3,'255,220,215',.8*da);}}
+  // precise gold particles gliding along connections
+  if(e.gp&&k>=1){const q=((t*e.sp*.7+e.ph)%1);const px=A.x+(B.x-A.x)*q,py=A.y+(B.y-A.y)*q;const r=Math.max(4,(A.sc+B.sc)*8);
+   glow(c,px,py,r*2,'240,200,120',.7*da);glow(c,px,py,r*.4,'255,250,235',.9*da);}
+ }
+ // nodes
+ for(let i=0;i<N;i++){const p=P[i];if(!p)continue;const n=nodes[i];const ap=sm(t,n.ap,n.ap+1.4);if(ap<=0)continue;
+  const da=depthA(p.dz);if(da<=.01||p.x<-200||p.x>W+200||p.y<-200||p.y>H+200)continue;
+  const tw=.75+.25*Math.sin(t*1.3+n.ph);const r=Math.max(2.2,(2+n.s*4)*p.sc*2.4);const a=ap*da*tw*fadeIn;
+  // near nodes become soft (depth of field)
+  const soft=cl((1400-p.dz)/1100);
+  glow(c,p.x,p.y,r*(4+soft*5),n.gold?'230,186,105':'200,220,255',a*(.35-.15*soft));
+  glow(c,p.x,p.y,r*(1+soft*2),'255,250,240',a*(.95-.6*soft));}
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
