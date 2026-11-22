@@ -1,0 +1,114 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS knowledge islands</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="c" width="3840" height="2160"></canvas><canvas id="fx" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,F=2300,DUR=15;
+const bgc=document.getElementById('bg').getContext('2d'),c=document.getElementById('c').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+const shC=document.createElement('canvas');shC.width=W;shC.height=H;const sh=shC.getContext('2d');
+let seed=8080;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+const eo=k=>1-Math.pow(1-k,3);
+// glow sprites
+function sprite(col){const s=document.createElement('canvas');s.width=s.height=128;const g=s.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+ gr.addColorStop(0,`rgba(${col},1)`);gr.addColorStop(.12,`rgba(${col},.85)`);gr.addColorStop(.3,`rgba(${col},.25)`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.fillRect(0,0,128,128);return s;}
+const SG=sprite('240,196,115'),SW=sprite('255,246,225'),SR=sprite('170,58,56');
+// ---------- maze (same generator as the labyrinth scene) ----------
+const NC=19,CS=420,HALF=NC*CS/2,WT=46,WH=480,mid=(NC-1)/2;
+const id=(i,j)=>i*NC+j;const open=new Set();const ok=(a,b)=>open.has(Math.min(a,b)+'_'+Math.max(a,b));
+{const vis=new Array(NC*NC).fill(false);const st=[[mid,mid]];vis[id(mid,mid)]=true;
+ while(st.length){const [i,j]=st[st.length-1];const nb=[[1,0],[-1,0],[0,1],[0,-1]].map(([a,b])=>[i+a,j+b]).filter(([a,b])=>a>=0&&b>=0&&a<NC&&b<NC&&!vis[id(a,b)]);
+  if(!nb.length){st.pop();continue}const [a,b]=nb[Math.floor(rnd()*nb.length)];vis[id(a,b)]=true;open.add(Math.min(id(i,j),id(a,b))+'_'+Math.max(id(i,j),id(a,b)));st.push([a,b]);}}
+for(const [a,b] of [[0,1],[1,0]])for(let i=mid-1;i<=mid+1;i++)for(let j=mid-1;j<=mid+1;j++){const i2=i+a,j2=j+b;if(i2<=mid+1&&j2<=mid+1)open.add(Math.min(id(i,j),id(i2,j2))+'_'+Math.max(id(i,j),id(i2,j2)));}
+const walls=[];
+for(let i=0;i<=NC;i++)for(let j=0;j<NC;j++){if(i>0&&i<NC&&ok(id(i-1,j),id(i,j)))continue;walls.push({x:-HALF+CS*i,z:-HALF+CS*(j+.5),w:WT,d:CS+WT});}
+for(let i=0;i<NC;i++)for(let j=0;j<=NC;j++){if(j>0&&j<NC&&ok(id(i,j-1),id(i,j)))continue;walls.push({x:-HALF+CS*(i+.5),z:-HALF+CS*j,w:CS+WT,d:WT});}
+for(const w of walls)w.ph=rnd();
+
+// ---------- camera path (Catmull-Rom) ----------
+const WP=[[-4400,1650,-4200],[-3000,1500,-2700],[-1500,1380,-1100],[0,1460,250],[1450,1330,1550],[2900,1480,2950],[4300,1560,4300],[5600,1600,5600]];
+function cr(p0,p1,p2,p3,u){const u2=u*u,u3=u2*u;return p1.map((_,i)=>.5*((2*p1[i])+(-p0[i]+p2[i])*u+(2*p0[i]-5*p1[i]+4*p2[i]-p3[i])*u2+(-p0[i]+3*p1[i]-3*p2[i]+p3[i])*u3));}
+function pathAt(s){s=cl(s,0,WP.length-3-1e-6);const i=Math.floor(s);return cr(WP[i],WP[i+1],WP[i+2],WP[i+3],s-i);}
+const SMAX=WP.length-3;const sOf=t=>SMAX*(.06+.68*(t/DUR*.7+sm(t,0,DUR)*.3));
+// ---------- islands ----------
+const islands=[];
+for(let k=0;k<11;k++){const s=.25+k*(SMAX-.6)/10;const p=pathAt(s),q=pathAt(s+.05);const dx=q[0]-p[0],dz=q[2]-p[2],n=Math.hypot(dx,dz);const side=(k%2?1:-1)*(420+rnd()*380);
+ islands.push({c:[p[0]-dz/n*side,p[1]+(rnd()-.45)*650,p[2]+dx/n*side],r:210+rnd()*200});}
+for(let k=0;k<7;k++){const s=rnd()*SMAX;const p=pathAt(s);const a=rnd()*6.28;islands.push({c:[p[0]+Math.cos(a)*(2200+rnd()*1800),p[1]+(rnd()-.3)*1100,p[2]+Math.sin(a)*(2200+rnd()*1800)],r:200+rnd()*200});}
+const fadeIdx=[2,5,8,13];
+islands.forEach((I,k)=>{I.fade=fadeIdx.includes(k)?4.5+fadeIdx.indexOf(k)*2.2+rnd()*.8:99;I.spin=(rnd()-.5)*.25;I.tilt=(rnd()-.5)*.6;I.on=.2+rnd()*1.8;
+ const n=Math.floor(90+I.r*.55);I.p=[];for(let i=0;i<n;i++){const u=rnd()*2-1,a=rnd()*6.28,rr=Math.pow(rnd(),.5);I.p.push({x:Math.cos(a)*Math.sqrt(1-u*u)*rr,y:u*rr*.38,z:Math.sin(a)*Math.sqrt(1-u*u)*rr,s:rnd(),ph:rnd()*6.28,lf:rnd()})}
+ // experts: brighter particles held by "individuals"
+ I.ex=[...Array(k<11?(rnd()<.6?2:1):1)].map(()=>({x:(rnd()-.5)*.6,y:(rnd()-.5)*.2,z:(rnd()-.5)*.6,ph:rnd()*6.28}));
+ // local links (each particle to its nearest neighbour)
+ I.l=[];for(let i=0;i<I.p.length;i++){let b=-1,bd=1e9;for(let j=0;j<I.p.length;j++){if(i===j)continue;const a=I.p[i],c=I.p[j];const d=(a.x-c.x)**2+(a.y-c.y)**2+(a.z-c.z)**2;if(d<bd){bd=d;b=j}}if(bd<.12&&i<b)I.l.push([i,b]);}});
+// reconnection attempts between neighbouring islands (never succeed)
+const tries=[];for(let k=0;k<10;k++){const a=k%11,b=(k+1)%11;const A=islands[a],B=islands[b];tries.push({a,b,t0:2+k*1.05+rnd()*.5,reach:.55+rnd()*.3,bend:[(rnd()-.5)*500,(rnd()-.2)*400,(rnd()-.5)*500],n:5+Math.floor(rnd()*4)});}
+for(let k=0;k<4;k++){const a=Math.floor(rnd()*11),b=Math.min(10,a+1+Math.floor(rnd()*2));if(a!==b)tries.push({a:b,b:a,t0:4+rnd()*8,reach:.35+rnd()*.3,bend:[(rnd()-.5)*500,(rnd()-.2)*400,(rnd()-.5)*500],n:6});}
+function iPos(I,p,t){const a=t*I.spin,ca=Math.cos(a),sa=Math.sin(a);let x=p.x*I.r,y=p.y*I.r,z=p.z*I.r;const ct=Math.cos(I.tilt),st=Math.sin(I.tilt);[y,z]=[y*ct-z*st,y*st+z*ct];[x,z]=[x*ca-z*sa,x*sa+z*ca];
+ let dr=0;if(t>I.fade)dr=Math.pow(t-I.fade,1.5)*60*(.4+p.lf);const n=Math.hypot(x,y,z)||1;return [I.c[0]+x+x/n*dr,I.c[1]+y+y/n*dr-(t>I.fade?(t-I.fade)*20:0),I.c[2]+z+z/n*dr];}
+function bez(A,B,C,u){return A.map((_,i)=>(1-u)*(1-u)*A[i]+2*(1-u)*u*C[i]+u*u*B[i]);}
+// ---------- camera ----------
+let CAM;
+function lookAt(p,tg){let f=[tg[0]-p[0],tg[1]-p[1],tg[2]-p[2]];let n=Math.hypot(...f);f=f.map(v=>v/n);let r=[f[2],0,-f[0]];n=Math.hypot(...r);r=r.map(v=>v/n);
+ const u=[r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0]];CAM={p,f,r,u};}
+function setCam(t){const s=sOf(t);const p=pathAt(s),a=pathAt(s+.55);lookAt(p,[a[0]+Math.sin(t*.35)*350,a[1]-160,a[2]]);}
+function tr(q){const d=[q[0]-CAM.p[0],q[1]-CAM.p[1],q[2]-CAM.p[2]];return [d[0]*CAM.r[0]+d[1]*CAM.r[1]+d[2]*CAM.r[2],d[0]*CAM.u[0]+d[1]*CAM.u[1]+d[2]*CAM.u[2],d[0]*CAM.f[0]+d[1]*CAM.f[1]+d[2]*CAM.f[2]];}
+const pr=q=>[cx-q[0]*F/q[2],cy+q[1]*F/q[2]];
+const P=(x,y,z)=>{const q=tr([x,y,z]);return q[2]<40?null:pr(q)};
+function poly(g,pts){g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)g.lineTo(pts[i][0],pts[i][1]);g.closePath();}
+function spr(img,x,y,r,a){if(a<=.004)return;fx.globalAlpha=a;fx.drawImage(img,x-r,y-r,2*r,2*r);}
+window.DURATION=DUR;
+window.seek=t=>{setCam(t);const fade=sm(t,0,1.4);
+ bgc.fillStyle='#02060c';bgc.fillRect(0,0,W,H);
+ let g=bgc.createRadialGradient(cx,cy*.85,0,cx,cy,W*.7);g.addColorStop(0,`rgba(16,33,58,${fade})`);g.addColorStop(1,'rgba(2,6,12,0)');bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ c.clearRect(0,0,W,H);fx.clearRect(0,0,W,H);
+ // faint labyrinth far below (continuity): only luminous wall tops
+ c.globalCompositeOperation='lighter';
+ for(const w of walls){const q=tr([w.x,WH,w.z]);if(q[2]<200||q[2]>14000)continue;const x0=w.x-w.w/2,x1=w.x+w.w/2,z0=w.z-w.d/2,z1=w.z+w.d/2;
+  const V=[[x0,WH,z0],[x1,WH,z0],[x1,WH,z1],[x0,WH,z1]].map(v=>P(...v));if(V.some(v=>!v))continue;const a=.10*cl(1-(q[2]-3000)/11000)*fade;
+  c.strokeStyle=`rgba(140,175,225,${a})`;c.lineWidth=Math.max(1,F/q[2]*5);poly(c,V);c.stroke();}
+ c.globalCompositeOperation='source-over';
+ fx.globalCompositeOperation='lighter';fx.lineCap='round';
+ // islands
+ for(const I of islands){const cc=tr(I.c);if(cc[2]<60||cc[2]>16000)continue;
+  const on=sm(t,I.on,I.on+1.6)*fade;const exA=1-sm(t,I.fade-1.4,I.fade+.2);const isA=1-sm(t,I.fade,I.fade+2.6);const fog=cl(1-(cc[2]-2500)/11000)*cl((cc[2]-250)/500);
+  const A=on*fog;if(A<=.01)continue;
+  const pts=I.p.map(p=>{const w=iPos(I,p,t);const q=tr(w);return q[2]<40?null:[...pr(q),q[2]]});
+  // local links
+  fx.globalAlpha=1;for(const [i,j] of I.l){const a=pts[i],b=pts[j];if(!a||!b)continue;const al=.32*A*isA*(1-I.p[i].lf*(t>I.fade?1:0)*.5);if(al<=.01)continue;
+   fx.strokeStyle=`rgba(226,184,104,${al})`;fx.lineWidth=Math.max(1,F/a[2]*2.4);fx.beginPath();fx.moveTo(a[0],a[1]);fx.lineTo(b[0],b[1]);fx.stroke();}
+  // particles
+  for(let i=0;i<pts.length;i++){const q=pts[i];if(!q)continue;const p=I.p[i];const sc=F/q[2];const tw=.7+.3*Math.sin(t*1.8+p.ph);
+   const pa=A*tw*(t>I.fade?1-sm(t,I.fade+p.lf*1.6,I.fade+p.lf*1.6+1.2):1);if(pa<=.01)continue;const r=Math.max(2.4,(6+p.s*7)*sc);
+   const red=t>I.fade?sm(t,I.fade+p.lf*1.6-.6,I.fade+p.lf*1.6+.6):0;
+   spr(SG,q[0],q[1],r*2.4,pa*(1-red)*.4);spr(SR,q[0],q[1],r*2.4,pa*red*.55);spr(SW,q[0],q[1],r*.6,pa*.8);}
+  // experts
+  for(const e of I.ex){const w=iPos(I,e,t);const q=tr(w);if(q[2]<40)continue;const s=pr(q);const sc=F/q[2];const pulse=.85+.15*Math.sin(t*1.4+e.ph);
+   const a=A*exA*pulse;spr(SG,s[0],s[1],sc*300,a*.55);spr(SW,s[0],s[1],sc*70,a);spr(SG,s[0],s[1],sc*900,a*.12);
+   if(t>I.fade-1.4&&t<I.fade+1)spr(SR,s[0],s[1],sc*420,.4*A*Math.sin(Math.PI*cl((t-I.fade+1.4)/2.4)));}
+ }
+ // failed reconnection attempts
+ for(const T of tries){const A=islands[T.a],B=islands[T.b];const k=t-T.t0;if(k<0||k>4.2)continue;if(t>A.fade)continue;
+  const C=[(A.c[0]+B.c[0])/2+T.bend[0],(A.c[1]+B.c[1])/2+T.bend[1],(A.c[2]+B.c[2])/2+T.bend[2]];
+  const dir=[B.c[0]-A.c[0],B.c[1]-A.c[1],B.c[2]-A.c[2]];const dn=Math.hypot(...dir);const st=A.c.map((v,i)=>v+dir[i]/dn*A.r*.8);const en=B.c.map((v,i)=>v-dir[i]/dn*B.r*.8);
+  const grow=T.reach*sm(k,0,1.8);const brk=sm(k,1.9,4.2);const N=36;
+  for(let i=0;i<N;i++){const u0=i/N*grow,u1=(i+1)/N*grow;const seg=Math.floor(i/(N/T.n));
+   // after the break, segments separate, drift and fade
+   const off=brk*(seg%2?1:-1)*60*(1+seg*.3);const p0=bez(st,en,C,u0),p1=bez(st,en,C,u1);p0[1]+=off-brk*brk*80*seg/T.n;p1[1]+=off-brk*brk*80*seg/T.n;
+   if(brk>0&&(i%(N/T.n|0))>((N/T.n|0)*(1-brk*.6)))continue;
+   const z=tr(p0)[2];if(z<700)continue;const a=P(...p0),b=P(...p1);if(!a||!b)continue;const fog=cl(1-(z-2500)/11000);
+   const al=fog*(1-brk)*.95*(.6+.4*(i/N));fx.globalAlpha=1;fx.strokeStyle=`rgba(232,196,120,${al*.25})`;fx.lineWidth=Math.min(40,Math.max(2,F/z*16));fx.beginPath();fx.moveTo(a[0],a[1]);fx.lineTo(b[0],b[1]);fx.stroke();
+   fx.strokeStyle=`rgba(250,232,190,${al})`;fx.lineWidth=Math.min(9,Math.max(1.4,F/z*4));fx.beginPath();fx.moveTo(a[0],a[1]);fx.lineTo(b[0],b[1]);fx.stroke();}
+  // searching tip, then burgundy spark where it breaks
+  const tip=bez(st,en,C,grow);const tp=tr(tip)[2]>700?P(...tip):null;if(tp){const sc=F/tr(tip)[2];spr(SW,tp[0],tp[1],sc*50,(1-brk)*.9);spr(SG,tp[0],tp[1],sc*200,(1-brk)*.4);
+   const sp=Math.exp(-Math.pow((k-2)/.35,2));spr(SR,tp[0],tp[1],sc*520,sp*.75);spr(SW,tp[0],tp[1],sc*60,sp*.6);}
+ }
+ fx.globalAlpha=1;fx.globalCompositeOperation='source-over';
+ // atmospheric depth haze + vignette
+ const v2=c.createRadialGradient(cx,cy,H*.42,cx,cy,W*.6);v2.addColorStop(0,'rgba(2,6,12,0)');v2.addColorStop(1,'rgba(2,6,12,.65)');c.fillStyle=v2;c.fillRect(0,0,W,H);
+ fx.save();fx.globalCompositeOperation='lighter';fx.translate(W*.8,0);fx.rotate(.45);fx.translate(0,-3000);
+ for(const [o,w,a] of [[0,600,.035],[900,340,.03],[-800,420,.025]]){const lg=fx.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(200,220,255,0)');lg.addColorStop(.5,`rgba(210,225,255,${a*fade})`);lg.addColorStop(1,'rgba(200,220,255,0)');fx.fillStyle=lg;fx.fillRect(o-w,0,2*w,9000);}
+ fx.restore();
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
