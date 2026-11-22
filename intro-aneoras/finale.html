@@ -1,0 +1,112 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS finale</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="c" width="3840" height="2160"></canvas><canvas id="fx" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,F=2300,DUR=20,HOLD=17.2;
+const bgc=document.getElementById('bg').getContext('2d'),c=document.getElementById('c').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+let seed=2718;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+const eio=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2,eout=k=>1-Math.pow(1-k,4);
+function sprite(col){const s=document.createElement('canvas');s.width=s.height=128;const g=s.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+ gr.addColorStop(0,`rgba(${col},1)`);gr.addColorStop(.12,`rgba(${col},.85)`);gr.addColorStop(.3,`rgba(${col},.25)`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.fillRect(0,0,128,128);return s;}
+const SG=sprite('240,196,115'),SW=sprite('255,248,232'),SR=sprite('147,50,49');
+function spr(img,x,y,r,a){if(a<=.004)return;fx.globalAlpha=Math.min(1,a);fx.drawImage(img,x-r,y-r,2*r,2*r);}
+const seg=(a,b,u)=>[lerp(a[0],b[0],u),lerp(a[1],b[1],u),lerp(a[2],b[2],u)],add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+const rotZ=(v,a)=>[v[0]*Math.cos(a)-v[1]*Math.sin(a),v[0]*Math.sin(a)+v[1]*Math.cos(a),v[2]],rotY=(v,a)=>[v[0]*Math.cos(a)-v[2]*Math.sin(a),v[1],v[0]*Math.sin(a)+v[2]*Math.cos(a)];
+// ---- ANEORAS star (measured from the logo): superellipse n=.4, horizontal/vertical .89, slight arm thickness
+const STARU=[...Array(1201)].map((_,i)=>{const a=i/1200*Math.PI*2+Math.PI/2;const ca=Math.cos(a),sa=Math.sin(a);let x=.89*Math.sign(ca)*Math.pow(Math.abs(ca),5),y=Math.sign(sa)*Math.pow(Math.abs(sa),5);const C=.03;return [x+Math.sign(x)*C*(1-Math.abs(y)),-(y+Math.sign(y)*C*(1-Math.abs(x)/.89))]});
+// world star (z=0 plane) of half-height RW
+const RW=700;
+// ---- final placement = where the logo's own star sits when logo_rgba.png is composited at 50% width, centred
+const LOGO_W=1920,LOGO_H=LOGO_W*646/3162,FINAL=[cx-LOGO_W/2+.18469*LOGO_W, cy-LOGO_H/2+.18731*LOGO_H],FINAL_R=.018*LOGO_W;
+// ---- the ecosystem: five module glyphs on a ring, pathways, structures, particles
+const RING=1750;const MODC=[...Array(5)].map((_,k)=>{const a=Math.PI/2+k*Math.PI*2/5;return [Math.cos(a)*RING,Math.sin(a)*RING*.78,-150+(k%2)*300]});
+const circ=(c,r,n,a0=0)=>[...Array(n+1)].map((_,i)=>{const a=a0+i/n*Math.PI*2;return [c[0]+Math.cos(a)*r,c[1]+Math.sin(a)*r,c[2]]});
+function glyph(k){const c=MODC[k];const P=[];const push=(pts)=>{pts.forEach((p,i)=>P.push({p,brk:i===0}))};
+ if(k===0){push(circ(c,300,80));push(circ(c,250,80));const rose=[];for(let i=0;i<=16;i++){const a=Math.PI/2+i*Math.PI/8;const r=i%4===0?230:i%2===0?120:40;rose.push([c[0]+Math.cos(a)*r,c[1]+Math.sin(a)*r,c[2]])}push(rose);}
+ if(k===1){for(let s=0;s<5;s++){const o=[c[0]-240+s*120,c[1]-200+s*100,c[2]];push([[o[0]-110,o[1],o[2]],[o[0]+110,o[1],o[2]],[o[0]+110,o[1]+24,o[2]],[o[0]-110,o[1]+24,o[2]],[o[0]-110,o[1],o[2]]])}}
+ if(k===2){push([[c[0]-300,c[1]-190,c[2]],[c[0]+300,c[1]-190,c[2]],[c[0]+300,c[1]+190,c[2]],[c[0]-300,c[1]+190,c[2]],[c[0]-300,c[1]-190,c[2]]]);push([[c[0]-260,c[1]-130,c[2]],[c[0]+40,c[1]-130,c[2]],[c[0]+40,c[1]+150,c[2]],[c[0]-260,c[1]+150,c[2]],[c[0]-260,c[1]-130,c[2]]]);push([[c[0]-140,c[1]-40,c[2]],[c[0]-140,c[1]+60,c[2]],[c[0]-60,c[1]+10,c[2]],[c[0]-140,c[1]-40,c[2]]]);}
+ if(k===3){const nd=[...Array(7)].map((_,i)=>{const a=i/7*Math.PI*2;return [c[0]+Math.cos(a)*230,c[1]+Math.sin(a)*170,c[2]+Math.sin(a*2)*80]});push(nd.concat([nd[0]]));push([nd[0],nd[3],nd[5],nd[1],nd[4],nd[6],nd[2],nd[0]]);push(circ(c,300,64));}
+ if(k===4){const hs=[120,180,240,310,380];hs.forEach((h,i)=>{const x=c[0]-240+i*120;push([[x-40,c[1]-200,c[2]],[x+40,c[1]-200,c[2]],[x+40,c[1]-200+h,c[2]],[x-40,c[1]-200+h,c[2]],[x-40,c[1]-200,c[2]]])});push(hs.map((h,i)=>[c[0]-240+i*120,c[1]-140+h,c[2]]));}
+ return P;}
+function resampleBrk(P,n){const L=[0];for(let i=1;i<P.length;i++)L.push(L[i-1]+(P[i].brk?0:Math.hypot(...[0,1,2].map(j=>P[i].p[j]-P[i-1].p[j]))));const T=L[L.length-1];const o=[];let k=0;
+ for(let i=0;i<=n;i++){const d=i/n*T;while(k<L.length-2&&L[k+1]<d)k++;const u=(d-L[k])/((L[k+1]-L[k])||1);o.push({p:seg(P[k].p,P[k+1].p,P[k+1].brk?0:u),brk:P[k+1].brk&&u>0&&i>0&&o.length&&false})}
+ // mark breaks: where consecutive resampled points belong to different sub-paths
+ let acc=0;const brkAt=new Set();for(let i=1;i<P.length;i++)if(P[i].brk)brkAt.add(L[i]);
+ for(let i=1;i<o.length;i++){const d0=(i-1)/n*T,d1=i/n*T;for(const b of brkAt)if(b>d0&&b<=d1)o[i].brk=true;}return o;}
+const M=300;const MOD=[...Array(5)].map((_,k)=>{const R=resampleBrk(glyph(k),M);
+ // target: arc k of the star outline
+ const tgt=[...Array(M+1)].map((_,i)=>{const u=(k+i/M)/5;const q=STARU[Math.round(u*1200)%1200];return [q[0]*RW,q[1]*RW,0]});return {R,tgt,t0:2.4+k*.55}});
+// pathways between modules
+const PATHS=[...Array(5)].map((_,k)=>{const a=MODC[k],b=MODC[(k+1)%5];const mid=seg(a,b,.5);const C=[mid[0]*1.35,mid[1]*1.35,mid[2]+200];return {a,b,C,ph:rnd()}});
+const bez=(A,C,B,u)=>[0,1,2].map(i=>(1-u)*(1-u)*A[i]+2*(1-u)*u*C[i]+u*u*B[i]);
+// geometric structures (wire cubes) and learning nodes floating in the ecosystem
+const CUBES=[...Array(9)].map(()=>{const a=rnd()*6.28,r=900+rnd()*2400;return {c:[Math.cos(a)*r,Math.sin(a)*r*.6,-600+rnd()*900],s:90+rnd()*120,rot:rnd()*6,ph:rnd()}});
+const NODES=[...Array(14)].map(()=>{const a=rnd()*6.28,r=1100+rnd()*2200;return {c:[Math.cos(a)*r,Math.sin(a)*r*.62,-500+rnd()*800],red:rnd()<.2,ph:rnd()*6.28}});
+// gold particles converging into the star's body
+function inStar(x,y){const ax=Math.abs(x)/.89,ay=Math.abs(y);return Math.pow(ax,.4)+Math.pow(ay,.4)<=1}
+const PARTS=[...Array(1600)].map(()=>{let x,y;do{x=(rnd()*2-1)*.92;y=rnd()*2-1}while(!inStar(x,y));const a=rnd()*6.28,r=1300+rnd()*3200;
+ return {st:[Math.cos(a)*r,Math.sin(a)*r*.65,(rnd()-.5)*1800],tg:[x*RW,-y*RW,0],d:rnd(),ph:rnd()*6.28,s:rnd(),sw:(rnd()<.5?-1:1)*(.8+rnd())}});
+const dust=[...Array(300)].map(()=>({p:[(rnd()-.5)*10000,(rnd()-.5)*6000,(rnd()-.5)*8000],s:rnd(),ph:rnd()*6.28}));
+// ---- camera (3D part, frontal, gentle drift that dies out)
+let CAM;
+function lookAt(p,tg){let f=[tg[0]-p[0],tg[1]-p[1],tg[2]-p[2]];let n=Math.hypot(...f);f=f.map(v=>v/n);let r=[f[2],0,-f[0]];n=Math.hypot(...r);r=r.map(v=>v/n);
+ const u=[r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0]];CAM={p,f,r,u};}
+const DIST=RW*F/640; // star world size projects to 640px half-height when formed
+function setCam(t){const k=sm(t,0,9.5);const az=Math.PI/2+lerp(.32,0,k),el=lerp(.16,0,k),dist=lerp(DIST*1.55,DIST,eio(k));lookAt([Math.cos(az)*Math.cos(el)*dist,Math.sin(el)*dist,Math.sin(az)*Math.cos(el)*dist],[0,0,0]);}
+function tr(q){const d=[q[0]-CAM.p[0],q[1]-CAM.p[1],q[2]-CAM.p[2]];return [d[0]*CAM.r[0]+d[1]*CAM.r[1]+d[2]*CAM.r[2],d[0]*CAM.u[0]+d[1]*CAM.u[1]+d[2]*CAM.u[2],d[0]*CAM.f[0]+d[1]*CAM.f[1]+d[2]*CAM.f[2]];}
+const pr=q=>[cx-q[0]*F/q[2],cy+q[1]*F/q[2]];const P=v=>pr(tr(v));
+function strokePts(Q,col,a,w,gw){fx.globalAlpha=1;for(const [ww,aa,cc] of [[gw,.2,col[0]],[w,.92,col[1]]]){fx.strokeStyle=`rgba(${cc},${aa*a})`;fx.lineWidth=ww;fx.beginPath();Q.forEach((q,i)=>i?fx.lineTo(q[0],q[1]):fx.moveTo(q[0],q[1]));fx.stroke();}}
+const GOLD=['214,161,59','255,236,190'],WHITE=['150,180,225','236,242,255'],RED=['147,50,49','214,110,104'];
+// star drawn in screen space (exact logo shape & colours)
+function drawStar(X,Y,R,a,edgeLight){c.save();c.translate(X,Y);c.scale(R,R);c.beginPath();STARU.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath();c.save();c.clip();
+ let gr=c.createRadialGradient(0,0,0,0,0,1);gr.addColorStop(0,`rgba(255,240,207,${a})`);gr.addColorStop(.1,`rgba(246,214,152,${a})`);gr.addColorStop(.3,`rgba(224,172,98,${a})`);gr.addColorStop(.65,`rgba(204,148,70,${a})`);gr.addColorStop(1,`rgba(176,126,56,${a})`);c.fillStyle=gr;c.fillRect(-1,-1,2,2);
+ let lg=c.createLinearGradient(-.12,0,.12,0);lg.addColorStop(0,'rgba(255,244,215,0)');lg.addColorStop(.5,`rgba(255,244,215,${.32*a})`);lg.addColorStop(1,'rgba(255,244,215,0)');c.fillStyle=lg;c.fillRect(-.12,-1,.24,2);
+ lg=c.createLinearGradient(0,-.08,0,.08);lg.addColorStop(0,'rgba(255,244,215,0)');lg.addColorStop(.5,`rgba(255,244,215,${.2*a})`);lg.addColorStop(1,'rgba(255,244,215,0)');c.fillStyle=lg;c.fillRect(-1,-.08,2,.16);c.restore();c.restore();
+ if(edgeLight>0){for(const [dir,off] of [[1,0],[-1,.5]]){const u=((off+dir*edgeLight*.9)%1+1)%1;const tail=[];for(let j=0;j<40;j++){const q=STARU[Math.round(((u-dir*j*.003)%1+1)%1*1200)%1200];tail.push([X+q[0]*R,Y+q[1]*R])}
+  strokePts(tail,GOLD,Math.sin(Math.PI*cl(edgeLight)),Math.max(1.5,R*.008),Math.max(4,R*.03));spr(SW,tail[0][0],tail[0][1],R*.05,.9*Math.sin(Math.PI*cl(edgeLight)))}}}
+window.DURATION=DUR;
+window.seek=T=>{const t=Math.min(T,HOLD);setCam(t);const fade=sm(t,0,1);
+ // background: clean deep navy (#1E354D) — atmosphere and haze fade out for the final frame
+ bgc.fillStyle='#08121f';bgc.fillRect(0,0,W,H);
+ let g=bgc.createRadialGradient(cx,cy,0,cx,cy,W*.72);g.addColorStop(0,'rgba(30,53,77,1)');g.addColorStop(.55,'rgba(22,40,60,1)');g.addColorStop(1,'rgba(8,18,31,1)');bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ c.clearRect(0,0,W,H);fx.clearRect(0,0,W,H);fx.globalCompositeOperation='lighter';fx.lineCap=fx.lineJoin='round';
+ const clean=sm(t,11,16);
+ for(const d of dust){const q=tr(d.p);if(q[2]<300)continue;const Q=pr(q);spr(SG,Q[0],Q[1],Math.max(2,F/q[2]*11),.15*fade*(1-clean)*(.5+.5*Math.sin(t*.8+d.ph)));}
+ const spin=t*.05*(1-sm(t,2,8));
+ const conv=k=>eio(sm(t,2+k*.35,7.2+k*.35));
+ // cubes & nodes drift to the centre and dissolve
+ for(const cb of CUBES){const k=eio(sm(t,2+cb.ph,6.5+cb.ph));const cc=seg(rotZ(cb.c,spin),[0,0,0],k);const s=cb.s*(1-k*.85);const a=fade*(1-sm(k,.6,1));if(a<=.01)continue;
+  const V=[];for(const x of [-1,1])for(const y of [-1,1])for(const z of [-1,1])V.push(add(cc,rotY([x*s,y*s,z*s],cb.rot+t*.3)));const E=[[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]];
+  for(const [i,j] of E)strokePts([P(V[i]),P(V[j])],GOLD,.55*a,1.6,6);}
+ for(const n of NODES){const k=eio(sm(t,2.2+n.ph*.08,6.8+n.ph*.08));const p=seg(rotZ(n.c,spin),[0,0,0],k);const Q=P(p);const a=fade*(1-sm(k,.7,1));spr(n.red?SR:SG,Q[0],Q[1],F/tr(p)[2]*200,.4*a);spr(SW,Q[0],Q[1],F/tr(p)[2]*30,.9*a);}
+ // pathways retract toward the centre
+ PATHS.forEach((pa,k)=>{const m=eio(sm(t,2.4,7));const A=seg(rotZ(pa.a,spin),[0,0,0],m),B=seg(rotZ(pa.b,spin),[0,0,0],m),C=seg(rotZ(pa.C,spin),[0,0,0],m);const pts=[...Array(41)].map((_,i)=>P(bez(A,C,B,i/40)));
+  strokePts(pts,k===2?RED:GOLD,.7*fade*(1-sm(m,.55,.95)),2,9);if(m<.6){const u=(t*.25+pa.ph)%1;const q=P(bez(A,C,B,u));spr(SW,q[0],q[1],18,.8*fade)}});
+ // five modules converge; their lines reorganise into the star's outline (one arc each)
+ const formed=sm(t,7.6,9.2);
+ MOD.forEach((md,k)=>{const m=conv(k);const sp=(1-m)*(k%2?.5:-.5);const pts=md.R.map((r,i)=>{const p=seg(rotZ(r.p,spin),md.tgt[i],m);return rotZ(p,sp*m*(1-m)*2)});
+  const Q=pts.map(P);const a=fade*(1-sm(t,8.8,10.4));if(a<=.004)return;const col=k===3?WHITE:GOLD;
+  fx.globalAlpha=1;for(const [ww,aa,cc] of [[10,.2,col[0]],[2.6,.92,col[1]]]){fx.strokeStyle=`rgba(${cc},${aa*a})`;fx.lineWidth=ww;fx.beginPath();for(let i=0;i<Q.length;i++){if(i===0||(md.R[i].brk&&m<.75))fx.moveTo(Q[i][0],Q[i][1]);else fx.lineTo(Q[i][0],Q[i][1]);}fx.stroke();}
+  if(m>.05&&m<.95){const h=Q[Math.floor((t*90+k*60)%Q.length)];spr(SW,h[0],h[1],22,.8*a)}});
+ // particles converge into the star body
+ for(const p of PARTS){const k=eio(sm(t,2+p.d*2.4,7.4+p.d*1.4));const st=rotZ(p.st,spin);let w=seg(st,p.tg,k);w=rotZ(w,p.sw*Math.sin(Math.PI*k)*.35);
+  const q=tr(w);if(q[2]<80)continue;const Q=pr(q);const sc=F/q[2];const a=fade*(.6+.4*Math.sin(t*2+p.ph))*(1-sm(t,8,9.6));if(a<=.01)continue;const r=Math.max(2.2,(4+p.s*5)*sc);
+  spr(SG,Q[0],Q[1],r*2.4,.38*a);spr(SW,Q[0],Q[1],r*.5,.85*a);}
+ // ---- the star: from its formed size at the centre to the exact position of the logo's star
+ const pull=eio(sm(t,11.6,HOLD));
+ const SX=lerp(cx,FINAL[0],pull),SY=lerp(cy,FINAL[1],pull);const R0=F*RW/tr([0,0,0])[2];const SR_=Math.exp(lerp(Math.log(R0),Math.log(FINAL_R),pull));
+ if(formed>0){spr(SG,SX,SY,SR_*2.6,(.12+.06*(1-pull))*formed);drawStar(SX,SY,SR_,formed,cl((t-8.6)/2.6));}
+ // ---- golden light travelling from the star toward the camera
+ const lt=(t-9.6)/2.6;if(lt>0&&lt<1){const e=eout(lt);const r=lerp(60,5200,e);const a=Math.sin(Math.PI*lt);
+  spr(SW,cx,cy,r*.35,.55*a);spr(SG,cx,cy,r,.42*a);
+  fx.save();fx.translate(cx,cy);for(const [len,th,al] of [[1,.7,.4],[.55,.45,.22]]){const L=W*len*(.4+e);const lg=fx.createLinearGradient(-L,0,L,0);lg.addColorStop(0,'rgba(255,225,160,0)');lg.addColorStop(.5,`rgba(255,240,210,${al*a})`);lg.addColorStop(1,'rgba(255,225,160,0)');fx.fillStyle=lg;fx.globalAlpha=1;fx.beginPath();fx.ellipse(0,0,L,Math.max(2,12*th*(1+e*3)),0,0,7);fx.fill();}
+  fx.globalAlpha=1;fx.strokeStyle=`rgba(147,50,49,${.35*a})`;fx.lineWidth=6;fx.beginPath();fx.arc(0,0,r*.42,0,7);fx.stroke();fx.restore();}
+ // restrained volumetric light, fading for the clean final frame
+ fx.save();fx.globalAlpha=1;fx.translate(W*.78,0);fx.rotate(.45);fx.translate(0,-3000);
+ for(const [o,w,a] of [[0,600,.045],[900,340,.035],[-800,420,.03]]){const lg=fx.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(210,225,255,0)');lg.addColorStop(.5,`rgba(220,230,255,${a*fade*(1-.8*clean)})`);lg.addColorStop(1,'rgba(210,225,255,0)');fx.fillStyle=lg;fx.fillRect(o-w,0,2*w,9000);}
+ fx.restore();fx.globalCompositeOperation='source-over';
+ const v2=fx.createRadialGradient(cx,cy,H*.5,cx,cy,W*.62);v2.addColorStop(0,'rgba(8,18,31,0)');v2.addColorStop(1,'rgba(8,18,31,.5)');fx.fillStyle=v2;fx.fillRect(0,0,W,H);
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
