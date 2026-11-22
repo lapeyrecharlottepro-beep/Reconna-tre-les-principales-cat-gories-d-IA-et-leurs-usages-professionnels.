@@ -1,0 +1,80 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS star geometry</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="c" width="3840" height="2160"></canvas><canvas id="fx" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,DUR=12,HOLD=10;
+const bgc=document.getElementById('bg').getContext('2d'),c=document.getElementById('c').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+let seed=99;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+const eio=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+function sprite(col){const s=document.createElement('canvas');s.width=s.height=128;const g=s.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+ gr.addColorStop(0,`rgba(${col},1)`);gr.addColorStop(.12,`rgba(${col},.85)`);gr.addColorStop(.3,`rgba(${col},.25)`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.fillRect(0,0,128,128);return s;}
+const SG=sprite('240,196,115'),SW=sprite('255,248,232'),SR=sprite('147,50,49');
+function spr(img,x,y,r,a){if(a<=.004)return;fx.globalAlpha=Math.min(1,a);fx.drawImage(img,x-r,y-r,2*r,2*r);}
+// ---- the ANEORAS star, measured from the logo: superellipse n=0.4, horizontal/vertical = 0.89
+const RY=640,RX=RY*.89,EXP=2/.4;
+const STAR=[...Array(1441)].map((_,i)=>{const a=i/1440*Math.PI*2;const ca=Math.cos(a),sa=Math.sin(a);let x=RX*Math.sign(ca)*Math.pow(Math.abs(ca),EXP),y=RY*Math.sign(sa)*Math.pow(Math.abs(sa),EXP);const C=.03*RY;return [x+Math.sign(x)*C*(1-Math.abs(y)/RY),y+Math.sign(y)*C*(1-Math.abs(x)/RX)]});
+const SL=(()=>{let L=[0];for(let i=1;i<STAR.length;i++)L.push(L[i-1]+Math.hypot(STAR[i][0]-STAR[i-1][0],STAR[i][1]-STAR[i-1][1]));return L})();
+function starAt(u){u=((u%1)+1)%1;const L=u*SL[SL.length-1];let lo=0,hi=SL.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(SL[m]<L)lo=m;else hi=m}const k=(L-SL[lo])/((SL[hi]-SL[lo])||1);return [lerp(STAR[lo][0],STAR[hi][0],k),lerp(STAR[lo][1],STAR[hi][1],k)]}
+// converging particles with trails
+const parts=[...Array(420)].map(()=>{const a=rnd()*6.28,r=900+rnd()*2400;return {a,r,spin:(rnd()<.5?-1:1)*(.7+rnd()*1.1),t0:rnd()*1.6,dur:2.2+rnd()*1.8,s:rnd(),gold:rnd()<.8,tgU:rnd()}});
+const dust=[...Array(320)].map(()=>({x:(rnd()-.5)*W*1.6,y:(rnd()-.5)*H*1.6,z:.3+rnd()*.7,s:rnd(),ph:rnd()*6.28}));
+window.DURATION=DUR;
+window.seek=T=>{const t=Math.min(T,HOLD);
+ // camera: push in, then gentle pull back, then still
+ const zoom=1+.3*eio(cl((t-2.6)/3.6))-.3*eio(cl((t-6.4)/3.4));const Z=s=>s*zoom;
+ const fade=sm(t,0,.6);
+ bgc.fillStyle='#070f1a';bgc.fillRect(0,0,W,H);
+ let g=bgc.createRadialGradient(cx,cy,0,cx,cy,W*.7);g.addColorStop(0,'rgba(30,53,77,1)');g.addColorStop(.6,'rgba(18,34,52,1)');g.addColorStop(1,'rgba(7,15,26,1)');bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ c.clearRect(0,0,W,H);fx.clearRect(0,0,W,H);fx.globalCompositeOperation='lighter';fx.lineCap=fx.lineJoin='round';
+ // dust with parallax
+ for(const d of dust){const pz=Math.pow(zoom,d.z);spr(SG,cx+d.x*pz,cy+d.y*pz,(3+d.s*6)*d.z*2,.16*(.5+.5*Math.sin(t*.9+d.ph)));}
+ // central light intensifies
+ const inten=sm(t,0,2.6);const after=sm(t,5.2,7.6);
+ spr(SG,cx,cy,Z(900+700*inten)*(1-.45*after),(.25+.35*inten)*(1-.6*after));spr(SW,cx,cy,Z(120+160*inten)*(1-.7*after),(.7+.3*inten)*(1-.85*after));
+ // particle trails spiralling in and settling onto the star's edge
+ for(const p of parts){const k=eio(cl((t-p.t0)/p.dur));if(k>=1&&t>p.t0+p.dur+.6)continue;
+  const pos=kk=>{const r=p.r*(1-kk),a=p.a+p.spin*(1-kk)*1.6;const e=starAt(p.tgU);return [cx+Z(lerp(Math.cos(a)*r,e[0]*.0,0)+e[0]*kk*.0)+Z(Math.cos(a)*r*1),cy+Z(Math.sin(a)*r)]};
+  const pts=[];for(let j=0;j<10;j++){const kk=eio(cl((t-j*.035-p.t0)/p.dur));pts.push(pos(kk))}
+  const a=sm(t,p.t0,p.t0+.4)*(1-sm(t,p.t0+p.dur-.3,p.t0+p.dur+.5))*fade;if(a<=.01)continue;
+  fx.globalAlpha=1;fx.strokeStyle=`rgba(${p.gold?'236,196,120':'255,240,215'},${.35*a})`;fx.lineWidth=2+p.s*3;fx.beginPath();pts.forEach((q,i)=>i?fx.lineTo(q[0],q[1]):fx.moveTo(q[0],q[1]));fx.stroke();
+  spr(SW,pts[0][0],pts[0][1],5+p.s*5,.9*a);spr(SG,pts[0][0],pts[0][1],16+p.s*12,.5*a);}
+ // ---- architectural construction geometry
+ const geo=sm(t,2.4,4.4)*(1-sm(t,7.6,9.6));
+ if(geo>0){fx.globalAlpha=1;const line=(x0,y0,x1,y1,a,w)=>{fx.strokeStyle=`rgba(236,200,130,${a})`;fx.lineWidth=w;fx.beginPath();fx.moveTo(cx+Z(x0),cy+Z(y0));fx.lineTo(cx+Z(x1),cy+Z(y1));fx.stroke()};
+  const k=eio(sm(t,2.4,4.2));
+  line(0,0,0,-RY*1.35*k,.55*geo,2);line(0,0,0,RY*1.35*k,.55*geo,2);line(0,0,-RX*1.4*k,0,.55*geo,2);line(0,0,RX*1.4*k,0,.55*geo,2);
+  const k2=sm(t,3,4.8);fx.strokeStyle=`rgba(236,200,130,${.35*geo})`;fx.lineWidth=1.6;fx.beginPath();fx.ellipse(cx,cy,Z(RY*1.02),Z(RY*1.02),-Math.PI/2,0,Math.PI*2*k2);fx.stroke();
+  fx.beginPath();fx.ellipse(cx,cy,Z(RY*.22),Z(RY*.22),-Math.PI/2,0,Math.PI*2*k2);fx.stroke();
+  const k3=sm(t,3.4,5);if(k3>0){const tips=[[0,-RY],[RX,0],[0,RY],[-RX,0],[0,-RY]];fx.strokeStyle=`rgba(236,200,130,${.3*geo})`;fx.lineWidth=1.4;fx.beginPath();
+   for(let i=0;i<4;i++){const a=tips[i],b=tips[i+1];fx.moveTo(cx+Z(a[0]),cy+Z(a[1]));fx.lineTo(cx+Z(lerp(a[0],b[0],k3)),cy+Z(lerp(a[1],b[1],k3)));}fx.stroke();}
+  for(const [x,y] of [[0,-RY],[RX,0],[0,RY],[-RX,0]]){spr(SW,cx+Z(x),cy+Z(y),10,.8*geo*k);spr(SG,cx+Z(x),cy+Z(y),40,.4*geo*k);}}
+ // ---- star outline drawn by golden light
+ const draw=sm(t,3.6,5.8);const outlineA=1-sm(t,7.4,9.4);
+ if(draw>0&&outlineA>0){fx.globalAlpha=1;const n=Math.floor((STAR.length-1)*draw);
+  for(const [w,a] of [[16,.18],[4,.95]]){fx.strokeStyle=`rgba(${a>.5?'252,232,186':'214,161,59'},${a*outlineA})`;fx.lineWidth=w*zoom;fx.beginPath();
+   for(let s=0;s<4;s++){const off=s*360;for(let i=0;i<=n/4;i++){const q=STAR[(off+i)%1440];const X=cx+Z(q[0]),Y=cy+Z(q[1]);i?fx.lineTo(X,Y):fx.moveTo(X,Y)}}fx.stroke();}}
+ // ---- the logo star itself (exact shape & gold of the brand)
+ const fill=sm(t,5.4,7.4);
+ if(fill>0){c.save();c.translate(cx,cy);c.scale(zoom,zoom);c.beginPath();STAR.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath();c.save();c.clip();
+  let gr=c.createRadialGradient(0,0,0,0,0,RY);gr.addColorStop(0,`rgba(255,240,207,${fill})`);gr.addColorStop(.1,`rgba(246,214,152,${fill})`);gr.addColorStop(.3,`rgba(224,172,98,${fill})`);gr.addColorStop(.65,`rgba(204,148,70,${fill})`);gr.addColorStop(1,`rgba(176,126,56,${fill})`);c.fillStyle=gr;c.fillRect(-RX,-RY,2*RX,2*RY);
+  // light vertical & horizontal streaks, as in the logo
+  let lg=c.createLinearGradient(-RX*.12,0,RX*.12,0);lg.addColorStop(0,'rgba(255,250,235,0)');lg.addColorStop(.5,`rgba(255,244,215,${.32*fill})`);lg.addColorStop(1,'rgba(255,250,235,0)');c.fillStyle=lg;c.fillRect(-RX*.12,-RY,RX*.24,2*RY);
+  lg=c.createLinearGradient(0,-RY*.08,0,RY*.08);lg.addColorStop(0,'rgba(255,250,235,0)');lg.addColorStop(.5,`rgba(255,244,215,${.2*fill})`);lg.addColorStop(1,'rgba(255,250,235,0)');c.fillStyle=lg;c.fillRect(-RX,-RY*.08,2*RX,RY*.16);
+  c.restore();c.restore();}
+ // golden light travelling along the edges (two counter-running sparks)
+ const run=sm(t,4.4,5)*(1-sm(t,8.8,9.8));
+ if(run>0)for(const [dir,off] of [[1,0],[-1,.5]]){const u=off+dir*(t-4.4)*.16;const tail=[];for(let j=0;j<26;j++){const q=starAt(u-dir*j*.004);tail.push([cx+Z(q[0]),cy+Z(q[1])])}
+  fx.globalAlpha=1;fx.strokeStyle=`rgba(255,240,205,${.75*run})`;fx.lineWidth=5*zoom;fx.beginPath();tail.forEach((q,i)=>i?fx.lineTo(q[0],q[1]):fx.moveTo(q[0],q[1]));fx.stroke();
+  spr(SW,tail[0][0],tail[0][1],26*zoom,.95*run);spr(SG,tail[0][0],tail[0][1],110*zoom,.5*run);}
+ // suspended: soft halo + very restrained volumetric rays
+ const halo=sm(t,6,9);spr(SG,cx,cy,Z(1500),.09*halo);
+ fx.globalAlpha=1;for(const [len,rot,a] of [[1.9,0,.10],[1.6,Math.PI/2,.08]]){const L=Z(RY*len);fx.save();fx.translate(cx,cy);fx.rotate(rot);const lg=fx.createLinearGradient(-L,0,L,0);
+  lg.addColorStop(0,'rgba(255,225,160,0)');lg.addColorStop(.5,`rgba(255,240,210,${a*halo})`);lg.addColorStop(1,'rgba(255,225,160,0)');fx.fillStyle=lg;fx.beginPath();fx.ellipse(0,0,L,Z(5),0,0,7);fx.fill();fx.restore();}
+ fx.save();fx.translate(W*.78,0);fx.rotate(.45);fx.translate(0,-3000);
+ for(const [o,w,a] of [[0,600,.04],[900,340,.03],[-800,420,.025]]){const lg=fx.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(210,225,255,0)');lg.addColorStop(.5,`rgba(220,230,255,${a})`);lg.addColorStop(1,'rgba(210,225,255,0)');fx.fillStyle=lg;fx.globalAlpha=1;fx.fillRect(o-w,0,2*w,9000);}
+ fx.restore();fx.globalCompositeOperation='source-over';
+ const v2=fx.createRadialGradient(cx,cy,H*.45,cx,cy,W*.62);v2.addColorStop(0,'rgba(5,10,18,0)');v2.addColorStop(1,'rgba(5,10,18,.55)');fx.fillStyle=v2;fx.fillRect(0,0,W,H);
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
