@@ -1,0 +1,128 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS knowledge loss</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="c" width="3840" height="2160"></canvas><canvas id="fx" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,F=2300,DUR=15;
+const bgc=document.getElementById('bg').getContext('2d'),c=document.getElementById('c').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+const shC=document.createElement('canvas');shC.width=W;shC.height=H;const sh=shC.getContext('2d');
+let seed=8080;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+const eo=k=>1-Math.pow(1-k,3);
+// glow sprites
+function sprite(col){const s=document.createElement('canvas');s.width=s.height=128;const g=s.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+ gr.addColorStop(0,`rgba(${col},1)`);gr.addColorStop(.12,`rgba(${col},.85)`);gr.addColorStop(.3,`rgba(${col},.25)`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.fillRect(0,0,128,128);return s;}
+const SG=sprite('240,196,115'),SW=sprite('255,246,225'),SR=sprite('170,58,56');
+// ---------- maze (same generator as the labyrinth scene) ----------
+const NC=19,CS=420,HALF=NC*CS/2,WT=46,WH=480,mid=(NC-1)/2;
+const id=(i,j)=>i*NC+j;const open=new Set();const ok=(a,b)=>open.has(Math.min(a,b)+'_'+Math.max(a,b));
+{const vis=new Array(NC*NC).fill(false);const st=[[mid,mid]];vis[id(mid,mid)]=true;
+ while(st.length){const [i,j]=st[st.length-1];const nb=[[1,0],[-1,0],[0,1],[0,-1]].map(([a,b])=>[i+a,j+b]).filter(([a,b])=>a>=0&&b>=0&&a<NC&&b<NC&&!vis[id(a,b)]);
+  if(!nb.length){st.pop();continue}const [a,b]=nb[Math.floor(rnd()*nb.length)];vis[id(a,b)]=true;open.add(Math.min(id(i,j),id(a,b))+'_'+Math.max(id(i,j),id(a,b)));st.push([a,b]);}}
+for(const [a,b] of [[0,1],[1,0]])for(let i=mid-1;i<=mid+1;i++)for(let j=mid-1;j<=mid+1;j++){const i2=i+a,j2=j+b;if(i2<=mid+1&&j2<=mid+1)open.add(Math.min(id(i,j),id(i2,j2))+'_'+Math.max(id(i,j),id(i2,j2)));}
+const walls=[];
+for(let i=0;i<=NC;i++)for(let j=0;j<NC;j++){if(i>0&&i<NC&&ok(id(i-1,j),id(i,j)))continue;walls.push({x:-HALF+CS*i,z:-HALF+CS*(j+.5),w:WT,d:CS+WT});}
+for(let i=0;i<NC;i++)for(let j=0;j<=NC;j++){if(j>0&&j<NC&&ok(id(i,j-1),id(i,j)))continue;walls.push({x:-HALF+CS*(i+.5),z:-HALF+CS*j,w:CS+WT,d:WT});}
+for(const w of walls)w.ph=rnd();
+// ---------- knowledge sphere ----------
+const SC=[0,760,0],SR0=430,NP=3500,NFR=16;
+const seeds=[...Array(NFR)].map(()=>{const u=rnd()*2-1,a=rnd()*Math.PI*2,r=Math.sqrt(1-u*u);return [r*Math.cos(a),u,r*Math.sin(a)]});
+const frags=seeds.map((s,k)=>({dir:[s[0],s[1]*.35+.05,s[2]],t0:3.2+rnd()*2.4,sp:260+rnd()*260,spin:(rnd()-.5)*.25,life:5+rnd()*3.5}));
+// hero fragment: the one whose drift is most toward camera's right-front
+let HERO=0,best=-9;seeds.forEach((s,k)=>{const sc=s[0]*.8+s[2]*.6-Math.abs(s[1]);if(sc>best){best=sc;HERO=k}});
+frags[HERO].t0=3.6;frags[HERO].sp=300;frags[HERO].life=99;frags[HERO].dir=[seeds[HERO][0],.06,seeds[HERO][2]];
+const parts=[];
+for(let i=0;i<NP;i++){const y=1-2*(i+.5)/NP,r=Math.sqrt(1-y*y),a=i*2.399963;let p=[r*Math.cos(a),y,r*Math.sin(a)];
+ const depth=Math.pow(rnd(),.35);p=p.map(v=>v*depth);let fi=0,bd=9;seeds.forEach((s,k)=>{const d=(s[0]-p[0])**2+(s[1]-p[1])**2+(s[2]-p[2])**2;if(d<bd){bd=d;fi=k}});
+ parts.push({p,f:fi,s:rnd(),ph:rnd()*6.28,j:[rnd()-.5,rnd()-.5,rnd()-.5],hero:false,lf:rnd()});}
+// heroes: 7 particles of the hero fragment that persist and separate
+const heroCands=parts.filter(q=>q.f===HERO&&Math.hypot(...q.p)>.75);for(let k=0;k<7&&k<heroCands.length;k++){const q=heroCands[Math.floor(k*heroCands.length/7)];q.hero=true;q.hk=k;q.hd=[Math.cos(k*.9+.3),(rnd()-.5)*.5,Math.sin(k*.9+.3)];q.hend=9.6+k*.78;}
+function partPos(q,t){const fr=frags[q.f];const tt=Math.max(0,t-fr.t0);const k=tt;  // seconds since fracture
+ const rot=t*.12+(tt>0?fr.spin*tt:0),ca=Math.cos(rot),sa=Math.sin(rot);
+ const breathe=1+.02*Math.sin(t*1.3);let x=q.p[0]*SR0*breathe,y=q.p[1]*SR0*breathe,z=q.p[2]*SR0*breathe;[x,z]=[x*ca-z*sa,x*sa+z*ca];
+ const dist=fr.sp*(k*.45+k*k*.05);const loose=Math.pow(k,1.6)*55;
+ x+=fr.dir[0]*dist+q.j[0]*loose;y+=fr.dir[1]*dist+q.j[1]*loose-k*k*2;z+=fr.dir[2]*dist+q.j[2]*loose;
+ if(q.hero){const hk=Math.max(0,t-8.2);const sp=hk*70+hk*hk*4;x+=q.hd[0]*sp;y+=q.hd[1]*sp*.6;z+=q.hd[2]*sp;}
+ if(q.hero)y=Math.max(y+k*k*2,-120+q.hk*25);
+ return [SC[0]+x,SC[1]+y,SC[2]+z];}
+function partAlpha(q,t){const fr=frags[q.f];const k=Math.max(0,t-fr.t0);
+ if(q.hero)return 1-sm(t,q.hend,q.hend+1.8)*.97;
+ if(q.f===HERO)return 1-sm(k,2.2+q.lf*3.5,3.2+q.lf*4);
+ return 1-sm(k,fr.life*(.35+q.lf*.65),fr.life*(.35+q.lf*.65)+1.6);}
+// ---------- camera ----------
+let CAM;
+function lookAt(p,tg){let f=[tg[0]-p[0],tg[1]-p[1],tg[2]-p[2]];let n=Math.hypot(...f);f=f.map(v=>v/n);let r=[f[2],0,-f[0]];n=Math.hypot(...r);r=r.map(v=>v/n);
+ const u=[r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0]];CAM={p,f,r,u};}
+function heroCentroid(t){const hs=parts.filter(q=>q.hero);const s=[0,0,0];let ws=0;for(const q of hs){const w=Math.pow(partAlpha(q,t),2)+.02;const p=partPos(q,t);s[0]+=p[0]*w;s[1]+=p[1]*w;s[2]+=p[2]*w;ws+=w}return s.map(v=>v/ws);}
+function setCam(t){const follow=sm(t,6.5,11.5);const hc=heroCentroid(Math.max(t,4));
+ const tg=[lerp(SC[0],hc[0],follow),lerp(SC[1],hc[1],follow),lerp(SC[2],hc[2],follow)];
+ const az=-.75+t*.05,dist=lerp(3000,1050,sm(t,5,14)),el=lerp(.2,.3,sm(t,6,15));
+ const off=[Math.cos(az)*Math.cos(el)*dist,Math.sin(el)*dist,Math.sin(az)*Math.cos(el)*dist];
+ // when following, keep the camera behind/side of the heroes, moving with them
+ const dirH=frags[HERO].dir;const side=[-dirH[2],0,dirH[0]];
+ const offF=[-dirH[0]*dist*.55+side[0]*dist*.75,dist*.22,-dirH[2]*dist*.55+side[2]*dist*.75];
+ const o=off;
+ lookAt([tg[0]+o[0],Math.max(tg[1]+o[1],980),tg[2]+o[2]],tg);}
+function tr(q){const d=[q[0]-CAM.p[0],q[1]-CAM.p[1],q[2]-CAM.p[2]];return [d[0]*CAM.r[0]+d[1]*CAM.r[1]+d[2]*CAM.r[2],d[0]*CAM.u[0]+d[1]*CAM.u[1]+d[2]*CAM.u[2],d[0]*CAM.f[0]+d[1]*CAM.f[1]+d[2]*CAM.f[2]];}
+const pr=q=>[cx-q[0]*F/q[2],cy+q[1]*F/q[2]];
+const P=(x,y,z)=>{const q=tr([x,y,z]);return q[2]<40?null:pr(q)};
+function poly(g,pts){g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)g.lineTo(pts[i][0],pts[i][1]);g.closePath();}
+const LD=[.55,-1,.32];
+window.DURATION=DUR;
+window.seek=t=>{setCam(t);const fade=sm(t,0,1.2);
+ // how much knowledge remains -> overall golden light
+ let lit=0;const pos=[],alp=[];for(let i=0;i<NP;i++){const q=parts[i];const a=partAlpha(q,t);alp.push(a);lit+=a;pos.push(a>.01?partPos(q,t):null);}
+ lit/=NP;
+ bgc.fillStyle='#02060c';bgc.fillRect(0,0,W,H);
+ const S0=P(...SC);
+ let g=bgc.createRadialGradient(cx,cy,0,cx,cy,W*.7);g.addColorStop(0,`rgba(${14+8*lit|0},${30+8*lit|0},${58+4*lit|0},${fade})`);g.addColorStop(1,'rgba(2,6,12,0)');bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ c.clearRect(0,0,W,H);fx.clearRect(0,0,W,H);sh.clearRect(0,0,W,H);
+ // ground of the maze
+ const gc=[[-HALF,-HALF],[HALF,-HALF],[HALF,HALF],[-HALF,HALF]];
+ // walls (painter's order)
+ const L=[];for(const w of walls){const q=tr([w.x,WH/2,w.z]);if(q[2]<100||q[2]>16000)continue;L.push({w,d:q[2]});}
+ L.sort((a,b)=>b.d-a.d);
+ sh.fillStyle='#000';
+ for(const {w} of L){const fp=[[w.x-w.w/2,w.z-w.d/2],[w.x+w.w/2,w.z-w.d/2],[w.x+w.w/2,w.z+w.d/2],[w.x-w.w/2,w.z+w.d/2]];const s=WH*1.4;
+  const pts=fp.concat(fp.map(([x,z])=>[x+LD[0]*s,z+LD[2]*s])).map(([x,z])=>P(x,1,z));if(pts.some(v=>!v))continue;
+  const hp=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);const lo=[],up=[];
+  for(const p of hp){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)}for(const p of hp.reverse()){while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p)}
+  poly(sh,lo.slice(0,-1).concat(up.slice(0,-1)));sh.fill();}
+ // floor: golden light pool under the sphere, fading as knowledge leaves
+ const fl=[];for(let a=0;a<48;a++){const an=a/48*Math.PI*2;const q=P(Math.cos(an)*2200,0,Math.sin(an)*2200);if(q)fl.push(q);}
+ if(S0){const F0=P(0,0,0);if(F0){const rr=F/tr([0,0,0])[2]*1500;const gr=bgc.createRadialGradient(F0[0],F0[1],0,F0[0],F0[1],rr);gr.addColorStop(0,`rgba(214,161,59,${.16*lit*fade})`);gr.addColorStop(1,'rgba(214,161,59,0)');bgc.fillStyle=gr;bgc.fillRect(0,0,W,H);}}
+ c.globalAlpha=.5*fade;c.drawImage(shC,0,0);c.globalAlpha=1;
+ const camP=CAM.p;
+ for(const {w,d} of L){const x0=w.x-w.w/2,x1=w.x+w.w/2,z0=w.z-w.d/2,z1=w.z+w.d/2,h=WH;
+  const V=[[x0,0,z0],[x1,0,z0],[x1,0,z1],[x0,0,z1],[x0,h,z0],[x1,h,z0],[x1,h,z1],[x0,h,z1]].map(v=>P(...v));if(V.some(v=>!v))continue;
+  const fog=cl(1-(d-2500)/11000)*fade;const near=Math.exp(-Math.hypot(w.x,w.z)/1800);const gl=lit*near; // golden spill from the sphere
+  const faces=[[[0,1,5,4],[0,0,-1]],[[2,3,7,6],[0,0,1]],[[1,2,6,5],[1,0,0]],[[3,0,4,7],[-1,0,0]]];
+  for(const [ix,n] of faces){const cxw=w.x+n[0]*w.w/2,czw=w.z+n[2]*w.d/2;if((camP[0]-cxw)*n[0]+(camP[2]-czw)*n[2]<=0)continue;
+   const facing=Math.max(0,-(n[0]*cxw+n[2]*czw)/Math.hypot(cxw,czw)+.2);const lt=.5+.4*Math.max(0,-(n[0]*LD[0]+n[2]*LD[2]));
+   const gr=c.createLinearGradient(...V[ix[0]],...V[ix[3]]);const b=fog;
+   const R=(18+120*gl*facing)*lt*b,G=(36+86*gl*facing)*lt*b,B=(62+30*gl*facing)*lt*b;
+   gr.addColorStop(0,`rgb(${R*.4|0},${G*.4|0},${B*.45|0})`);gr.addColorStop(1,`rgb(${R|0},${G|0},${B|0})`);c.fillStyle=gr;poly(c,ix.map(i=>V[i]));c.fill();}
+  const top=[V[4],V[5],V[6],V[7]];c.fillStyle=`rgb(${(30+60*gl)*fog|0},${(52+40*gl)*fog|0},${(80+10*gl)*fog|0})`;poly(c,top);c.fill();
+  c.globalCompositeOperation='lighter';c.strokeStyle=`rgba(${150+90*gl|0},${180+20*gl|0},${230-100*gl|0},${(.22+.5*gl)*fog})`;c.lineWidth=Math.max(1,F/d*6);poly(c,top);c.stroke();c.globalCompositeOperation='source-over';}
+ // ---------- particles ----------
+ fx.globalCompositeOperation='lighter';
+ // inner core glow of the sphere
+ if(S0){const sc=F/tr(SC)[2];const core=1-sm(t,3.4,7.5);fx.globalAlpha=.22*core*fade;const r=sc*SR0*2.4;fx.drawImage(SG,S0[0]-r,S0[1]-r,2*r,2*r);
+  // subtle burgundy heartbeat at the moment of fracture
+  const hb=Math.exp(-Math.pow((t-3.4)/.45,2))+.6*Math.exp(-Math.pow((t-4.4)/.5,2));fx.globalAlpha=.55*hb;const r2=sc*SR0*3.2;fx.drawImage(SR,S0[0]-r2,S0[1]-r2,2*r2,2*r2);}
+ for(let i=0;i<NP;i++){const a0=alp[i];if(a0<=.01)continue;const q=parts[i];const p=pos[i];const tq=tr(p);if(tq[2]<60)continue;const s=pr(tq);
+  if(s[0]<-100||s[0]>W+100||s[1]<-100||s[1]>H+100)continue;
+  const fog=cl(1-(tq[2]-3000)/9000);const tw=.75+.25*Math.sin(t*2.1+q.ph);const sc=F/tq[2];
+  const k=Math.max(0,t-frags[q.f].t0);const red=q.hero?sm(t,q.hend-1.2,q.hend+.6):sm(1-a0,.25,.85); // gold -> burgundy before vanishing
+  const r=Math.max(2.5,(q.hero?30:5+q.s*6)*sc)*(q.hero?1:1);const a=a0*fog*tw*fade;
+  const gs=q.hero?3:2,ga=q.hero?.9:.32;fx.globalAlpha=a*(1-red)*ga;fx.drawImage(SG,s[0]-r*gs,s[1]-r*gs,r*gs*2,r*gs*2);
+  fx.globalAlpha=a*red*(q.hero?.9:.5);fx.drawImage(SR,s[0]-r*gs,s[1]-r*gs,r*gs*2,r*gs*2);
+  fx.globalAlpha=a*(q.hero?1:.75);fx.drawImage(SW,s[0]-r*.55,s[1]-r*.55,r*1.1,r*1.1);}
+ fx.globalAlpha=1;fx.globalCompositeOperation='source-over';
+ // volumetric shafts
+ fx.save();fx.globalCompositeOperation='lighter';fx.translate(W*.8,0);fx.rotate(.45);fx.translate(0,-3000);
+ for(const [o,w,a] of [[0,600,.05],[900,340,.04],[-800,420,.035]]){const lg=fx.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(200,220,255,0)');lg.addColorStop(.5,`rgba(210,225,255,${a*fade})`);lg.addColorStop(1,'rgba(200,220,255,0)');fx.fillStyle=lg;fx.fillRect(o-w,0,2*w,9000);}
+ fx.restore();
+ const v2=c.createRadialGradient(cx,cy,H*.45,cx,cy,W*.6);v2.addColorStop(0,'rgba(2,6,12,0)');v2.addColorStop(1,`rgba(2,6,12,${.6+.25*sm(t,10,15)})`);c.fillStyle=v2;c.fillRect(0,0,W,H);
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
