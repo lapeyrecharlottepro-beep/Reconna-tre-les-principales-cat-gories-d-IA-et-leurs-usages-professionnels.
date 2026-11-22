@@ -1,0 +1,135 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS knowledge vs practice</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="c" width="3840" height="2160"></canvas><canvas id="fx" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,F=2300,DUR=14;
+const bgc=document.getElementById('bg').getContext('2d'),c=document.getElementById('c').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+let seed=2718;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+function sprite(col){const s=document.createElement('canvas');s.width=s.height=128;const g=s.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+ gr.addColorStop(0,`rgba(${col},1)`);gr.addColorStop(.12,`rgba(${col},.85)`);gr.addColorStop(.3,`rgba(${col},.25)`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.fillRect(0,0,128,128);return s;}
+const SG=sprite('240,196,115'),SW=sprite('235,242,255'),SR=sprite('170,58,56');
+// ---------- camera ----------
+let CAM;
+function lookAt(p,tg){let f=[tg[0]-p[0],tg[1]-p[1],tg[2]-p[2]];let n=Math.hypot(...f);f=f.map(v=>v/n);let r=[f[2],0,-f[0]];n=Math.hypot(...r);r=r.map(v=>v/n);
+ const u=[r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0]];CAM={p,f,r,u};}
+function setCam(t){const k=t/DUR*.6+sm(t,0,DUR)*.4;lookAt([lerp(-2000,1800,k),1300+Math.sin(t*.3)*60,lerp(-3500,-2900,k)],[lerp(-700,700,k),1380,1500]);}
+function tr(q){const d=[q[0]-CAM.p[0],q[1]-CAM.p[1],q[2]-CAM.p[2]];return [d[0]*CAM.r[0]+d[1]*CAM.r[1]+d[2]*CAM.r[2],d[0]*CAM.u[0]+d[1]*CAM.u[1]+d[2]*CAM.u[2],d[0]*CAM.f[0]+d[1]*CAM.f[1]+d[2]*CAM.f[2]];}
+const pr=q=>[cx-q[0]*F/q[2],cy+q[1]*F/q[2]];
+const P=v=>{const q=tr(v);return q[2]<40?null:pr(q)};
+function poly(g,pts,close=true){g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)g.lineTo(pts[i][0],pts[i][1]);if(close)g.closePath();}
+function spr(img,x,y,r,a){if(a<=.004)return;fx.globalAlpha=a;fx.drawImage(img,x-r,y-r,2*r,2*r);}
+// ---------- lower level: operational structures ----------
+const structs=[];
+for(let i=0;i<34;i++){const x=-3800+rnd()*7600,z=-200+rnd()*3400;if(structs.some(s=>Math.abs(s.x-x)<420&&Math.abs(s.z-z)<420))continue;
+ structs.push({x,z,w:260+rnd()*320,d:260+rnd()*320,h:260+Math.pow(rnd(),1.4)*880,kind:rnd()<.22?'gold':rnd()<.08?'red':'base',ph:rnd(),run:rnd()<.6});}
+// ---------- upper level: knowledge panels ----------
+const panels=[];
+for(let i=0;i<9;i++){const x=-3900+i*980+(rnd()-.5)*300,z=300+rnd()*3000;
+ const p={c:[x,2150+rnd()*650,z],w:820+rnd()*380,h:520+rnd()*240,yaw:(rnd()-.5)*.6,tilt:-.18-rnd()*.25,ph:rnd()*6.28,t0:.3+rnd()*2.2,el:[]};
+ // abstract content (no text): rules, circles, bars, node graphs, curves
+ const E=p.el;E.push({k:'bar',x:-.42,y:.38,w:.3+rnd()*.25,h:.045});
+ const kind=Math.floor(rnd()*3);
+ for(let r=0;r<4;r++)E.push({k:'rule',x:-.42,y:.26-r*.075,w:.25+rnd()*.5});
+ if(kind===0)E.push({k:'circ',x:.24,y:.05,r:.16,arc:.55+rnd()*.4});
+ if(kind===1){for(let b=0;b<5;b++)E.push({k:'col',x:.08+b*.075,y:-.38,h:.12+rnd()*.38});}
+ if(kind===2){const nn=[...Array(6)].map(()=>[.05+rnd()*.38,-.35+rnd()*.5]);E.push({k:'graph',n:nn});}
+ E.push({k:'curve',x0:-.42,x1:(kind===1?-.02:.0),y:-.25,a:.06+rnd()*.06,f:2+rnd()*3});
+ E.push({k:'grid',x:-.42,y:-.42,w:.36,h:.08});
+ panels.push(p);}
+function panelBasis(p,t){const yaw=p.yaw+Math.sin(t*.22+p.ph)*.05,tilt=p.tilt+Math.sin(t*.3+p.ph)*.03;
+ const U=[Math.cos(yaw),0,Math.sin(yaw)],N=[-Math.sin(yaw),0,Math.cos(yaw)];const V=[N[0]*Math.sin(tilt),Math.cos(tilt),N[2]*Math.sin(tilt)];
+ const C=[p.c[0],p.c[1]+Math.sin(t*.5+p.ph)*40,p.c[2]];return {U,V,C,N};}
+const pp=(B,p,u,v)=>[B.C[0]+B.U[0]*u*p.w+B.V[0]*v*p.h,B.C[1]+B.U[1]*u*p.w+B.V[1]*v*p.h,B.C[2]+B.U[2]*u*p.w+B.V[2]*v*p.h];
+// ---------- incomplete bridges ----------
+const bridges=[];
+panels.forEach((p,i)=>{const nb=rnd()<.6?1:2;for(let k=0;k<nb;k++){const u=(rnd()-.5)*.6;let best=null,bd=1e9;
+  for(const s of structs){const d=Math.hypot(s.x-(p.c[0]+u*p.w),s.z-p.c[2]);if(d<bd){bd=d;best=s}}
+  bridges.push({p,u,s:best,down:.3+rnd()*.22,up:.14+rnd()*.2,t0:2+rnd()*5,ph:rnd()*6.28});}});
+// falling particles
+const motes=[...Array(260)].map(()=>({p:panels[Math.floor(rnd()*panels.length)],u:rnd()-.5,t0:rnd()*DUR*1.6-3,sp:120+rnd()*160,dx:(rnd()-.5)*60,s:rnd(),gold:rnd()<.55}));
+window.DURATION=DUR;
+window.seek=t=>{setCam(t);const fade=sm(t,0,1.2);
+ bgc.fillStyle='#02060c';bgc.fillRect(0,0,W,H);
+ let g=bgc.createRadialGradient(cx,cy*.7,0,cx,cy,W*.7);g.addColorStop(0,`rgba(22,42,70,${fade})`);g.addColorStop(1,'rgba(2,6,12,0)');bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ c.clearRect(0,0,W,H);fx.clearRect(0,0,W,H);fx.globalCompositeOperation='lighter';fx.lineCap=c.lineCap='round';
+ // floor grid
+ for(let i=-14;i<=14;i++){for(const [a,b] of [[[i*400,0,-1200],[i*400,0,6000]],[[-6000,0,i*400+1200],[6000,0,i*400+1200]]]){
+   const N=24;for(let k=0;k<N;k++){const p0=a.map((v,j)=>lerp(v,b[j],k/N)),p1=a.map((v,j)=>lerp(v,b[j],(k+1)/N));const q0=tr(p0);if(q0[2]<200)continue;const A=P(p0),B=P(p1);if(!A||!B)continue;
+    const al=.12*cl(1-(q0[2]-3000)/9000)*fade;bgc.strokeStyle=`rgba(120,150,200,${al})`;bgc.lineWidth=1.4;bgc.beginPath();bgc.moveTo(A[0],A[1]);bgc.lineTo(B[0],B[1]);bgc.stroke();}}}
+ // soft light pools on the floor under the panels
+ for(const p of panels){const Q=P([p.c[0],0,p.c[2]]);if(!Q)continue;const sc=F/tr([p.c[0],0,p.c[2]])[2];const gr=bgc.createRadialGradient(Q[0],Q[1],0,Q[0],Q[1],sc*900);gr.addColorStop(0,`rgba(150,180,230,${.07*fade})`);gr.addColorStop(1,'rgba(150,180,230,0)');bgc.fillStyle=gr;bgc.fillRect(Q[0]-sc*900,Q[1]-sc*900,sc*1800,sc*1800);}
+ // ---- structures (solid, painter's order)
+ const L=structs.map(s=>({s,d:tr([s.x,s.h/2,s.z])[2]})).filter(o=>o.d>100).sort((a,b)=>b.d-a.d);
+ const camP=CAM.p;
+ for(const {s,d} of L){const x0=s.x-s.w/2,x1=s.x+s.w/2,z0=s.z-s.d/2,z1=s.z+s.d/2,h=s.h*sm(t,.2+s.ph,1.4+s.ph);if(h<2)continue;
+  const V=[[x0,0,z0],[x1,0,z0],[x1,0,z1],[x0,0,z1],[x0,h,z0],[x1,h,z0],[x1,h,z1],[x0,h,z1]].map(P);if(V.some(v=>!v))continue;
+  const fog=cl(1-(d-3500)/10000)*fade;const base=s.kind==='gold'?[150,112,50]:s.kind==='red'?[110,36,40]:[30,54,86];
+  for(const [ix,n] of [[[0,1,5,4],[0,0,-1]],[[2,3,7,6],[0,0,1]],[[1,2,6,5],[1,0,0]],[[3,0,4,7],[-1,0,0]]]){const cxw=s.x+n[0]*s.w/2,czw=s.z+n[2]*s.d/2;if((camP[0]-cxw)*n[0]+(camP[2]-czw)*n[2]<=0)continue;
+   const lt=n[2]<0?.75:.5;const gr=c.createLinearGradient(...V[ix[0]],...V[ix[3]]);gr.addColorStop(0,`rgb(${base[0]*.35*lt*fog|0},${base[1]*.35*lt*fog|0},${base[2]*.4*lt*fog|0})`);gr.addColorStop(1,`rgb(${base[0]*lt*fog|0},${base[1]*lt*fog|0},${base[2]*lt*fog|0})`);
+   c.fillStyle=gr;poly(c,ix.map(i=>V[i]));c.fill();}
+  const top=[V[4],V[5],V[6],V[7]];c.fillStyle=`rgb(${base[0]*1.1*fog|0},${base[1]*1.1*fog|0},${base[2]*1.15*fog|0})`;poly(c,top);c.fill();
+  c.globalCompositeOperation='lighter';const ew=Math.max(1,F/d*4);c.strokeStyle=s.kind==='base'?`rgba(220,230,245,${.5*fog})`:`rgba(240,205,130,${.6*fog})`;c.lineWidth=ew;poly(c,top);c.stroke();
+  for(const i of [0,1,2,3]){if(!V[i]||!V[i+4])continue;}
+  c.globalCompositeOperation='source-over';
+  // operational activity: light running around the top edge
+  if(s.run){const q=(t*.35+s.ph)%1;const per=[[x0,z0],[x1,z0],[x1,z1],[x0,z1],[x0,z0]];const seg=Math.floor(q*4),f=q*4-seg;const pt=[lerp(per[seg][0],per[seg+1][0],f),h+4,lerp(per[seg][1],per[seg+1][1],f)];
+   const Q=P(pt);if(Q){const sc=F/tr(pt)[2];spr(SG,Q[0],Q[1],sc*110,.75*fog);spr(SW,Q[0],Q[1],sc*26,.9*fog);}}}
+ // ---- incomplete bridges
+ for(const b of bridges){const B=panelBasis(b.p,t);const top=pp(B,b.p,b.u,-.5);const s=b.s;const bot=[s.x,s.h,s.z];
+  const k=t-b.t0;if(k<0)continue;const breath=.92+.08*Math.sin(t*1.1+b.ph);
+  const dn=b.down*sm(k,0,2.2)*breath,up=b.up*sm(k,.6,2.6)*(.94+.06*Math.sin(t*1.3+b.ph+1));
+  const span=[bot[0]-top[0],bot[1]-top[1],bot[2]-top[2]];
+  for(const [a0,a1,from] of [[0,dn,top],[1-up,1,top]]){if(a1-a0<.005)continue;
+   const A=[top[0]+span[0]*a0,top[1]+span[1]*a0,top[2]+span[2]*a0],Bp=[top[0]+span[0]*a1,top[1]+span[1]*a1,top[2]+span[2]*a1];
+   // two rails + cross ties
+   const side=[B.U[0]*38,0,B.U[2]*38];const rails=[[A.map((v,i)=>v+side[i]),Bp.map((v,i)=>v+side[i])],[A.map((v,i)=>v-side[i]),Bp.map((v,i)=>v-side[i])]];
+   for(const [r0,r1] of rails){const R0=P(r0),R1=P(r1);if(!R0||!R1)continue;const z=tr(r0)[2];const fog=cl(1-(z-3500)/10000)*fade;
+    fx.globalAlpha=1;fx.strokeStyle=`rgba(214,161,59,${.25*fog})`;fx.lineWidth=Math.max(2,F/z*14);poly(fx,[R0,R1],false);fx.stroke();
+    fx.strokeStyle=`rgba(245,215,150,${.85*fog})`;fx.lineWidth=Math.max(1.2,F/z*4);poly(fx,[R0,R1],false);fx.stroke();}
+   const nt=Math.floor((a1-a0)*14);for(let j=0;j<=nt;j++){const u=a0+(a1-a0)*j/Math.max(1,nt);const m=[top[0]+span[0]*u,top[1]+span[1]*u,top[2]+span[2]*u];const Q0=P(m.map((v,i)=>v+side[i])),Q1=P(m.map((v,i)=>v-side[i]));if(!Q0||!Q1)continue;
+    const z=tr(m)[2];fx.strokeStyle=`rgba(240,205,130,${.5*cl(1-(z-3500)/10000)*fade})`;fx.lineWidth=Math.max(1,F/z*3);poly(fx,[Q0,Q1],false);fx.stroke();}}
+  // glowing open ends facing each other across the gap + burgundy tension pulse
+  const e1=[top[0]+span[0]*dn,top[1]+span[1]*dn,top[2]+span[2]*dn],e2=[top[0]+span[0]*(1-up),top[1]+span[1]*(1-up),top[2]+span[2]*(1-up)];
+  for(const e of [e1,e2]){const Q=P(e);if(!Q)continue;const sc=F/tr(e)[2];spr(SW,Q[0],Q[1],sc*60,.8*sm(k,0,1));spr(SG,Q[0],Q[1],sc*200,.35*sm(k,0,1));}
+  const mid=e1.map((v,i)=>(v+e2[i])/2);const Q=P(mid);if(Q&&k>2.4){const sc=F/tr(mid)[2];const pulse=Math.pow(Math.max(0,Math.sin(t*.9+b.ph)),6);spr(SR,Q[0],Q[1],sc*420,.55*pulse);}}
+ // ---- panels (translucent glass, painter's order)
+ const PL=panels.map(p=>({p,B:panelBasis(p,t),d:tr(p.c)[2]})).filter(o=>o.d>200).sort((a,b)=>b.d-a.d);
+ for(const {p,B,d} of PL){const on=sm(t,p.t0,p.t0+1.4)*fade;if(on<=.01)continue;const fog=cl(1-(d-3500)/11000);const A=on*fog;
+  const cr=[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]].map(([u,v])=>P(pp(B,p,u,v)));if(cr.some(v=>!v))continue;
+  // glass body
+  const gr=c.createLinearGradient(cr[3][0],cr[3][1],cr[1][0],cr[1][1]);gr.addColorStop(0,`rgba(210,225,250,${.16*A})`);gr.addColorStop(.5,`rgba(150,175,215,${.07*A})`);gr.addColorStop(1,`rgba(200,220,250,${.13*A})`);
+  c.fillStyle=gr;poly(c,cr);c.fill();
+  // gold frame
+  c.globalCompositeOperation='lighter';const ew=Math.max(1,F/d*5);c.strokeStyle=`rgba(214,161,59,${.25*A})`;c.lineWidth=ew*4;poly(c,cr);c.stroke();c.strokeStyle=`rgba(240,205,130,${.9*A})`;c.lineWidth=ew;poly(c,cr);c.stroke();
+  // reflection sheen sweeping across the glass
+  const sw=((t*.12+p.ph)%1.6)-.3;if(sw>-.2&&sw<1.2){const s0=[pp(B,p,-.5+sw,.5),pp(B,p,-.5+sw+.12,.5),pp(B,p,-.5+sw-.08,-.5),pp(B,p,-.5+sw-.2,-.5)].map(P);
+   if(s0.every(Boolean)){c.save();poly(c,cr);c.clip();c.fillStyle=`rgba(230,240,255,${.06*A})`;poly(c,s0);c.fill();c.restore();}}
+  // abstract content drawing in progressively
+  const draw=sm(t,p.t0+.6,p.t0+3);const lw=Math.max(1,F/d*3.2);
+  const L2=(pts,col,a,w)=>{const Q=pts.map(([u,v])=>P(pp(B,p,u,v)));if(Q.some(v=>!v))return;c.strokeStyle=`rgba(${col},${a})`;c.lineWidth=w;poly(c,Q,false);c.stroke();};
+  for(const e of p.el){const a=A*.8;
+   if(e.k==='bar'){const w=e.w*draw;const Q=[[e.x,e.y],[e.x+w,e.y],[e.x+w,e.y-e.h],[e.x,e.y-e.h]].map(([u,v])=>P(pp(B,p,u,v)));if(Q.every(Boolean)){c.fillStyle=`rgba(240,205,130,${.55*A})`;poly(c,Q);c.fill();}}
+   if(e.k==='rule')L2([[e.x,e.y],[e.x+e.w*draw,e.y]],'225,235,250',a*.55,lw);
+   if(e.k==='circ'){const pts=[];const n=48;for(let i=0;i<=n;i++){const an=i/n*Math.PI*2*draw;pts.push([e.x+Math.cos(an)*e.r*.62,e.y+Math.sin(an)*e.r]);}L2(pts,'225,235,250',a*.6,lw);
+    const pts2=[];for(let i=0;i<=n;i++){const an=-Math.PI/2+i/n*Math.PI*2*e.arc*draw;pts2.push([e.x+Math.cos(an)*e.r*.62*.75,e.y+Math.sin(an)*e.r*.75]);}L2(pts2,'240,205,130',a,lw*2);}
+   if(e.k==='col'){const h=e.h*draw;const Q=[[e.x,e.y],[e.x+.045,e.y],[e.x+.045,e.y+h],[e.x,e.y+h]].map(([u,v])=>P(pp(B,p,u,v)));if(Q.every(Boolean)){c.fillStyle=`rgba(230,238,252,${.28*A})`;poly(c,Q);c.fill();c.strokeStyle=`rgba(240,205,130,${.7*A})`;c.lineWidth=lw;poly(c,Q);c.stroke();}}
+   if(e.k==='graph'){for(let i=0;i<e.n.length-1;i++){const a0=e.n[i],a1=e.n[(i+2)%e.n.length];if(draw*e.n.length<i)break;L2([a0,e.n[i+1]],'225,235,250',a*.5,lw);L2([a0,a1],'225,235,250',a*.25,lw);}
+    for(const nd of e.n){const Q=P(pp(B,p,nd[0],nd[1]));if(Q){const sc=F/d;spr(SW,Q[0],Q[1],sc*34,A*draw*.8);spr(SG,Q[0],Q[1],sc*90,A*draw*.25)}}}
+   if(e.k==='curve'){const pts=[];const n=40;for(let i=0;i<=n;i++){const u=i/n*draw;pts.push([lerp(e.x0,e.x1,u),e.y+Math.sin(u*e.f*Math.PI+t*.8)*e.a]);}L2(pts,'240,205,130',a*.85,lw*1.4);}
+   if(e.k==='grid'){for(let i=0;i<=6;i++)L2([[e.x+e.w*i/6,e.y],[e.x+e.w*i/6,e.y+e.h*draw]],'225,235,250',a*.35,lw*.8);L2([[e.x,e.y],[e.x+e.w*draw,e.y]],'225,235,250',a*.35,lw*.8);}
+  }
+  c.globalCompositeOperation='source-over';}
+ // ---- particles falling between the two levels (fade before reaching the ground)
+ for(const m of motes){const k=t-m.t0;if(k<0)continue;const B=panelBasis(m.p,t);const st=pp(B,m.p,m.u,-.5);const y=st[1]-k*m.sp;const lifeA=sm(k,0,.6)*(1-sm(st[1]-y,700,1500));if(lifeA<=.01)continue;
+  const w=[st[0]+Math.sin(k*.8+m.s*6)*m.dx,y,st[2]+Math.cos(k*.7+m.s*6)*m.dx];const Q=P(w);if(!Q)continue;const z=tr(w)[2];const sc=F/z;const fog=cl(1-(z-3500)/10000)*fade;
+  const r=Math.max(2.5,(5+m.s*6)*sc);spr(m.gold?SG:SW,Q[0],Q[1],r*2.4,.45*lifeA*fog);spr(SW,Q[0],Q[1],r*.5,.85*lifeA*fog);}
+ fx.globalAlpha=1;fx.globalCompositeOperation='source-over';
+ // volumetric shafts + vignette
+ fx.save();fx.globalCompositeOperation='lighter';fx.translate(W*.75,0);fx.rotate(.42);fx.translate(0,-3000);
+ for(const [o,w,a] of [[0,620,.05],[950,340,.04],[-850,420,.035]]){const lg=fx.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(200,220,255,0)');lg.addColorStop(.5,`rgba(210,225,255,${a*fade})`);lg.addColorStop(1,'rgba(200,220,255,0)');fx.fillStyle=lg;fx.fillRect(o-w,0,2*w,9000);}
+ fx.restore();
+ const v2=c.createRadialGradient(cx,cy,H*.45,cx,cy,W*.62);v2.addColorStop(0,'rgba(2,6,12,0)');v2.addColorStop(1,'rgba(2,6,12,.6)');c.fillStyle=v2;c.fillRect(0,0,W,H);
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
