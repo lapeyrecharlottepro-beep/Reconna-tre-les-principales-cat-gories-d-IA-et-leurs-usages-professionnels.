@@ -1,0 +1,66 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS star reveal</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#000}
+.l{position:absolute;inset:0}
+#logo{position:absolute;left:50%;top:50%;width:1500px;transform:translate(-50%,-50%)}
+#logo img{width:100%;display:block}
+#shine{position:absolute;inset:0;-webkit-mask:url(logo_rgba.png) center/100% 100% no-repeat;mask:url(logo_rgba.png) center/100% 100% no-repeat;background:linear-gradient(105deg,transparent 40%,rgba(255,246,220,.95) 50%,transparent 60%);background-size:300% 100%;mix-blend-mode:screen}
+.flare{position:absolute;left:0;top:0;mix-blend-mode:screen;pointer-events:none}
+</style></head><body>
+<canvas id="c" class="l" width="3840" height="2160" style="width:1920px;height:1080px"></canvas>
+<div id="logo"><img src="logo_rgba.png"><div id="shine"></div></div>
+<canvas id="fx" class="l" width="3840" height="2160" style="width:1920px;height:1080px;mix-blend-mode:screen"></canvas>
+<div id="white" class="l" style="background:radial-gradient(circle at 50% 50%,#fffaf0 0%,#f6dfa6 35%,#d6a13b 70%,#8a5a12 100%);opacity:0"></div>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2;
+const c=document.getElementById('c').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+const logo=document.getElementById('logo'),shine=document.getElementById('shine'),white=document.getElementById('white');
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const stars=[...Array(1400)].map(()=>({x:(rnd()-.5)*2,y:(rnd()-.5)*2,z:rnd()*1+.05,b:rnd(),h:rnd()}));
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const smooth=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)};
+function flareStar(g,x,y,r,alpha){ // glow + 4-point cinematic flare
+  if(alpha<=0||r<=0)return;
+  g.save();g.globalAlpha=alpha;
+  let gr=g.createRadialGradient(x,y,0,x,y,r*6);gr.addColorStop(0,'rgba(255,236,190,.55)');gr.addColorStop(.25,'rgba(230,170,70,.18)');gr.addColorStop(1,'rgba(180,120,30,0)');
+  g.fillStyle=gr;g.beginPath();g.arc(x,y,r*6,0,7);g.fill();
+  for(const [len,th,rot] of [[r*8,r*.07,0],[r*5.5,r*.06,Math.PI/2],[r*4,r*.05,Math.PI/4],[r*4,r*.05,-Math.PI/4]]){
+    g.save();g.translate(x,y);g.rotate(rot);
+    const lg=g.createLinearGradient(-len,0,len,0);lg.addColorStop(0,'rgba(255,215,140,0)');lg.addColorStop(.5,'rgba(255,245,215,.95)');lg.addColorStop(1,'rgba(255,215,140,0)');
+    g.fillStyle=lg;g.beginPath();g.ellipse(0,0,len,Math.max(th,1.2),0,0,7);g.fill();g.restore();}
+  gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,'#fffdf6');gr.addColorStop(.5,'rgba(255,232,170,.9)');gr.addColorStop(1,'rgba(255,200,100,0)');
+  g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();g.restore();}
+window.DURATION=7;
+window.seek=t=>{
+  // phase A 0-2.6 : flying toward the golden star through space
+  c.clearRect(0,0,W,H);fx.clearRect(0,0,W,H);
+  const sp=t<2.6?ease(t/2.6):1;const fly=t*0.22+sp*0.35;
+  const spaceA=1-smooth(t,2.2,2.9);
+  // deep space gradient
+  c.fillStyle='#000';c.fillRect(0,0,W,H);if(spaceA>0){const bg=c.createRadialGradient(cx,cy,0,cx,cy,W*.7);bg.addColorStop(0,'rgb(11,26,56)');bg.addColorStop(1,'rgb(0,0,0)');c.globalAlpha=spaceA;c.fillStyle=bg;c.fillRect(0,0,W,H);c.globalAlpha=1;}
+  if(spaceA>0){for(const s of stars){let z=((s.z-fly)%1+1)%1+.02;const px=cx+s.x/z*W*.18,py=cy+s.y/z*W*.18;if(px<0||px>W||py<0||py>H)continue;
+    const size=(1.2+s.b*2.4)*(.4+.6/z*.3);const a=Math.min(1,(1-z)*1.6)*(.35+.65*s.b)*spaceA;
+    c.fillStyle=s.h>.85?`rgba(255,220,160,${a})`:`rgba(220,232,255,${a})`;c.beginPath();c.arc(px,py,Math.min(size,6),0,7);c.fill();}}
+  // the ANEORAS star growing as we approach
+  const r=18+Math.pow(cl(t/2.8),3.2)*700;
+  const tw=1+.08*Math.sin(t*9);
+  flareStar(fx,cx,cy,r*tw,1-smooth(t,3.0,3.6));
+  // golden light fills the screen
+  white.style.opacity=(smooth(t,2.2,3.0)*(1-smooth(t,3.2,4.4))).toFixed(3);
+  // logo emerges from the light
+  const lA=smooth(t,3.2,4.6);
+  logo.style.opacity=lA.toFixed(3);
+  const sc=1.06-0.06*ease(cl((t-3.2)/2.2));
+  logo.style.transform=`translate(-50%,-50%) scale(${sc})`;
+  logo.style.filter=`blur(${(1-smooth(t,3.2,4.4))*14}px) drop-shadow(0 0 ${30*(1-lA*.6)}px rgba(214,161,59,${.35*lA}))`;
+  // shine sweep across the emblem
+  const sh=cl((t-4.3)/1.3);shine.style.backgroundPosition=`${100-sh*100}% 0`;shine.style.opacity=(sh>0&&sh<1)?1:0;
+  // sparkle on the logo's star (logo star at 18.47% / 18.6% of logo box)
+  const lw=1500*sc*2,lh=lw*646/3162,sx=cx-lw/2+lw*.1847,sy=cy-lh/2+lh*.186;
+  const k=cl((t-4.9)/1.4),spark=Math.sin(Math.PI*k);
+  flareStar(fx,sx,sy,10+spark*26,spark*.95);
+};
+window.ready=new Promise(r=>{const i=document.querySelector('#logo img');i.complete?r():i.onload=r}).then(()=>{seek(0);return true});
+</script></body></html>
