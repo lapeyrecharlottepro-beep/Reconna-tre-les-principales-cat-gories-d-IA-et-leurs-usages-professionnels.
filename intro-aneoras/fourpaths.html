@@ -1,0 +1,105 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS four paths</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="c" width="3840" height="2160"></canvas><canvas id="fx" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,F=2300,DUR=15;
+const bgc=document.getElementById('bg').getContext('2d'),c=document.getElementById('c').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+let seed=4444;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+const eio=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+function sprite(col){const s=document.createElement('canvas');s.width=s.height=128;const g=s.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+ gr.addColorStop(0,`rgba(${col},1)`);gr.addColorStop(.12,`rgba(${col},.85)`);gr.addColorStop(.3,`rgba(${col},.25)`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.fillRect(0,0,128,128);return s;}
+const SG=sprite('240,196,115'),SW=sprite('255,248,232'),SR=sprite('160,52,52');
+function spr(img,x,y,r,a){if(a<=.004)return;fx.globalAlpha=Math.min(1,a);fx.drawImage(img,x-r,y-r,2*r,2*r);}
+// ---- logo star (same measured geometry as the previous sequence)
+const RY0=640,EXP=5;
+const STAR=[...Array(721)].map((_,i)=>{const a=i/720*Math.PI*2;const ca=Math.cos(a),sa=Math.sin(a);let x=.89*Math.sign(ca)*Math.pow(Math.abs(ca),EXP),y=Math.sign(sa)*Math.pow(Math.abs(sa),EXP);const C=.03;return [x+Math.sign(x)*C*(1-Math.abs(y)),y+Math.sign(y)*C*(1-Math.abs(x)/.89)]});
+function drawStar(X,Y,R,a){c.save();c.translate(X,Y);c.scale(R,R);c.beginPath();STAR.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath();c.save();c.clip();
+ let gr=c.createRadialGradient(0,0,0,0,0,1);gr.addColorStop(0,`rgba(255,240,207,${a})`);gr.addColorStop(.1,`rgba(246,214,152,${a})`);gr.addColorStop(.3,`rgba(224,172,98,${a})`);gr.addColorStop(.65,`rgba(204,148,70,${a})`);gr.addColorStop(1,`rgba(176,126,56,${a})`);c.fillStyle=gr;c.fillRect(-1,-1,2,2);
+ let lg=c.createLinearGradient(-.12,0,.12,0);lg.addColorStop(0,'rgba(255,244,215,0)');lg.addColorStop(.5,`rgba(255,244,215,${.32*a})`);lg.addColorStop(1,'rgba(255,244,215,0)');c.fillStyle=lg;c.fillRect(-.12,-1,.24,2);
+ lg=c.createLinearGradient(0,-.08,0,.08);lg.addColorStop(0,'rgba(255,244,215,0)');lg.addColorStop(.5,`rgba(255,244,215,${.2*a})`);lg.addColorStop(1,'rgba(255,244,215,0)');c.fillStyle=lg;c.fillRect(-1,-.08,2,.16);c.restore();c.restore();}
+// ---- camera
+let CAM;
+function lookAt(p,tg){let f=[tg[0]-p[0],tg[1]-p[1],tg[2]-p[2]];let n=Math.hypot(...f);f=f.map(v=>v/n);let r=[f[2],0,-f[0]];n=Math.hypot(...r);r=r.map(v=>v/n);
+ const u=[r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0]];CAM={p,f,r,u};}
+const DIST=3800;
+function setCam(t){const k=sm(t,1.5,DUR);const az=Math.PI/2-.42*k,el=.1*k,dist=lerp(DIST,4250,k);lookAt([Math.cos(az)*Math.cos(el)*dist,Math.sin(el)*dist,Math.sin(az)*Math.cos(el)*dist],[0,0,0]);}
+function tr(q){const d=[q[0]-CAM.p[0],q[1]-CAM.p[1],q[2]-CAM.p[2]];return [d[0]*CAM.r[0]+d[1]*CAM.r[1]+d[2]*CAM.r[2],d[0]*CAM.u[0]+d[1]*CAM.u[1]+d[2]*CAM.u[2],d[0]*CAM.f[0]+d[1]*CAM.f[1]+d[2]*CAM.f[2]];}
+const pr=q=>[cx-q[0]*F/q[2],cy+q[1]*F/q[2]];const P=v=>pr(tr(v));
+// stroke a 3D polyline with glow; prog = fraction drawn
+function line3(pts,prog,col,a,w=3,glowW=14){if(prog<=0||a<=0)return null;const n=pts.length-1,m=prog*n,k=Math.floor(m);const Q=[];
+ for(let i=0;i<=Math.min(k,n);i++)Q.push(P(pts[i]));if(k<n){const f=m-k;const A=pts[k],B=pts[k+1];Q.push(P([lerp(A[0],B[0],f),lerp(A[1],B[1],f),lerp(A[2],B[2],f)]));}
+ if(Q.length<2)return Q[Q.length-1];fx.globalAlpha=1;for(const [ww,aa,cc] of [[glowW,.2,col],[w,.95,col==='g'?'255,236,190':col==='r'?'214,110,104':'235,242,255']]){
+  const C=cc==='g'?'214,161,59':cc==='w'?'190,210,245':cc==='r'?'160,52,52':cc;fx.strokeStyle=`rgba(${C},${aa*a})`;fx.lineWidth=ww;fx.beginPath();Q.forEach((q,i)=>i?fx.lineTo(q[0],q[1]):fx.moveTo(q[0],q[1]));fx.stroke();}
+ return Q[Q.length-1];}
+const rotY=(v,a)=>[v[0]*Math.cos(a)-v[2]*Math.sin(a),v[1],v[0]*Math.sin(a)+v[2]*Math.cos(a)],rotX=(v,a)=>[v[0],v[1]*Math.cos(a)-v[2]*Math.sin(a),v[1]*Math.sin(a)+v[2]*Math.cos(a)],rotZ=(v,a)=>[v[0]*Math.cos(a)-v[1]*Math.sin(a),v[0]*Math.sin(a)+v[1]*Math.cos(a),v[2]];
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+// ---- the four elements
+const EL=[{name:'globe',c:[-1450,620,-150],t0:1.2},{name:'human',c:[1450,560,150],t0:2.5},{name:'struct',c:[1450,-680,-150],t0:3.8},{name:'arrow',c:[-1450,-700,150],t0:5.1}];
+EL.forEach((e,i)=>{e.bend=(i%2?1:-1)*420;e.arrive=e.t0+1.7;});
+// human contour (right half, mirrored), smoothed
+const HR=[[30,640],[95,612],[150,585],[182,540],[200,420],[204,300],[192,232],[168,236],[162,330],[148,440],[122,478],[100,330],[118,200],[110,60],[96,-80],[82,-240],[98,-282],[40,-286],[36,-240],[40,-80],[14,120],[0,128]];
+function catmull(pts,n){const o=[];for(let i=0;i<pts.length-1;i++){const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];for(let k=0;k<n;k++){const u=k/n,u2=u*u,u3=u2*u;o.push([0,1].map(j=>.5*((2*p1[j])+(-p0[j]+p2[j])*u+(2*p0[j]-5*p1[j]+4*p2[j]-p3[j])*u2+(-p0[j]+3*p1[j]-3*p2[j]+p3[j])*u3)))}}o.push(pts[pts.length-1]);return o;}
+const HRs=catmull(HR,8);const HUMAN=HRs.slice().reverse().map(([x,y])=>[-x,y]).concat(HRs.slice(1)); // left side bottom->top then right side top->bottom? build closed loop
+const HLOOP=HRs.concat(HRs.slice().reverse().map(([x,y])=>[-x,y]));
+const PHI=(1+Math.sqrt(5))/2;
+const TET=[[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]],TET2=TET.map(v=>v.map(x=>-x));const TE=[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+const dust=[...Array(380)].map(()=>({p:[(rnd()-.5)*9000,(rnd()-.5)*5000,(rnd()-.5)*6000],s:rnd(),ph:rnd()*6.28}));
+const sparks=[...Array(90)].map(()=>({e:Math.floor(rnd()*4),u:rnd(),sp:.12+rnd()*.15,s:rnd()}));
+function pathPt(e,u){const S=[0,0,0],E=e.c;const mid=[E[0]/2,E[1]/2,E[2]/2];const len=Math.hypot(E[0],E[1]);const nrm=[-E[1]/len,E[0]/len,0];const C=add(mid,nrm.map(v=>v*e.bend));
+ return [0,1,2].map(i=>(1-u)*(1-u)*S[i]+2*(1-u)*u*C[i]+u*u*E[i]);}
+window.DURATION=DUR;
+window.seek=t=>{setCam(t);
+ bgc.fillStyle='#070f1a';bgc.fillRect(0,0,W,H);
+ let g=bgc.createRadialGradient(cx,cy,0,cx,cy,W*.7);g.addColorStop(0,'rgba(30,53,77,1)');g.addColorStop(.6,'rgba(18,34,52,1)');g.addColorStop(1,'rgba(7,15,26,1)');bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ c.clearRect(0,0,W,H);fx.clearRect(0,0,W,H);fx.globalCompositeOperation='lighter';fx.lineCap=fx.lineJoin='round';
+ for(const d of dust){const q=tr(d.p);if(q[2]<300)continue;const Q=pr(q);spr(SG,Q[0],Q[1],Math.max(2,F/q[2]*11),.16*(.5+.5*Math.sin(t*.8+d.ph))*sm(t,1,3));}
+ // central star: from full-frame size (previous end frame) to its place in the composition
+ const C0=P([0,0,0]);const zc=tr([0,0,0])[2];const starR=lerp(RY0,RY0*.42,eio(cl((t-.4)/2.2)))*(DIST/zc);
+ spr(SG,C0[0],C0[1],starR*2.4,.09+.05*Math.sin(t*1.2));
+ // paths
+ for(const e of EL){const k=eio(cl((t-e.t0)/1.7));if(k<=0)continue;const pts=[...Array(61)].map((_,i)=>pathPt(e,i/60*.88));
+  const post=sm(t,e.arrive,e.arrive+1);const head=line3(pts,k,'g',1-.62*post,3.2,16);
+  if(k<1&&head){spr(SW,head[0],head[1],28,.95);spr(SG,head[0],head[1],110,.55);}
+  // arrival flash
+  const fl=Math.exp(-Math.pow((t-e.arrive)/.35,2));const EC=P(e.c);spr(SG,EC[0],EC[1],420*fl,.4*fl);}
+ for(const s of sparks){const e=EL[s.e];if(t<e.arrive)continue;const u=((s.u+t*s.sp)%1)*.88;const Q=P(pathPt(e,u));const a=sm(t,e.arrive,e.arrive+1)*Math.sin(Math.PI*u/.88);spr(SW,Q[0],Q[1],5+s.s*5,.8*a);spr(SG,Q[0],Q[1],16+s.s*10,.4*a);}
+ // ---- 1. globe: understanding the world
+ {const e=EL[0],d=sm(t,e.arrive-.2,e.arrive+2.2);if(d>0){const R=400,rot=t*.25;
+  for(let i=-2;i<=2;i++){const lat=i*Math.PI/6.5;const pts=[...Array(73)].map((_,j)=>{const a=j/72*Math.PI*2;return add(e.c,rotX(rotY([Math.cos(a)*Math.cos(lat)*R,Math.sin(lat)*R,Math.sin(a)*Math.cos(lat)*R],rot),.25))});line3(pts,sm(d,.0+Math.abs(i)*.08,.6+Math.abs(i)*.08),i===0?'g':'w',i===0?.95:.6,i===0?3:2.2,10);}
+  for(let m=0;m<8;m++){const lon=m*Math.PI/8;const pts=[...Array(73)].map((_,j)=>{const a=j/72*Math.PI*2;return add(e.c,rotX(rotY([Math.cos(a)*R*Math.cos(lon),Math.sin(a)*R,Math.cos(a)*R*Math.sin(lon)],rot),.25))});line3(pts,sm(d,.15+m*.05,.75+m*.05),'w',.5,2,8);}
+  const ring=[...Array(91)].map((_,j)=>{const a=j/90*Math.PI*2;return add(e.c,rotZ(rotX([Math.cos(a)*R*1.35,0,Math.sin(a)*R*1.35],.35),-.3))});line3(ring,sm(d,.5,1),'r',.85,2.4,12);
+  const EC=P(e.c);spr(SG,EC[0],EC[1],380,.12*d);}}
+ // ---- 2. human silhouette: self-awareness (faces the camera)
+ {const e=EL[1],d=sm(t,e.arrive-.2,e.arrive+2.4);if(d>0){const s=.96;const yaw=Math.atan2(CAM.p[0]-e.c[0],CAM.p[2]-e.c[2]);
+  const to3=([x,y])=>add(e.c,rotY([x*s,(y-180)*s,0],-yaw));
+  line3(HLOOP.map(to3),d,'g',.95,3.2,14);
+  const head=[...Array(61)].map((_,j)=>{const a=-Math.PI/2+j/60*Math.PI*2;return [Math.cos(a)*74,712+Math.sin(a)*74]}).map(to3);line3(head,sm(d,.1,.5),'g',.95,3.2,14);
+  // inner flow lines (elegance), heart point in burgundy
+  for(const [k,off] of [[0,.62],[1,.78]]){const inner=HLOOP.filter((_,i)=>i%2===0).map(([x,y])=>[x*off,(y-200)*off+200+(1-off)*120]).map(to3);line3(inner,sm(d,.35+k*.15,1),'w',.28,1.6,6);}
+  const hp=P(to3([0,470]));spr(SR,hp[0],hp[1],130,.75*sm(d,.6,1)*(.75+.25*Math.sin(t*2.2)));spr(SW,hp[0],hp[1],16,.9*sm(d,.6,1));}}
+ // ---- 3. symmetrical structure: independent thought (star tetrahedron)
+ {const e=EL[2],d=sm(t,e.arrive-.2,e.arrive+2.2);if(d>0){const R=250,rot=t*.3;
+  for(const [T,col,dir] of [[TET,'g',1],[TET2,'w',-1]]){const V=T.map(v=>add(e.c,rotX(rotY(v.map(x=>x*R),rot*dir),.3)));
+   TE.forEach(([a,b],i)=>line3([V[a],V[b]],sm(d,i*.08,.45+i*.08),col,col==='g'?.95:.75,2.8,12));
+   V.forEach(v=>{const Q=P(v);spr(SR,Q[0],Q[1],60,.55*d);spr(SW,Q[0],Q[1],12,.9*d)});}
+  const axis=[add(e.c,[0,-560,0]),add(e.c,[0,560,0])];line3(axis,sm(d,.4,.9),'w',.35,1.6,6);
+  const EC=P(e.c);spr(SW,EC[0],EC[1],30,.8*d);spr(SG,EC[0],EC[1],300,.15*d);}}
+ // ---- 4. forward arrow: the ability to act
+ {const e=EL[3],d=sm(t,e.arrive-.2,e.arrive+2);if(d>0){const dir=.42;const push=Math.sin(t*1.6)*25;
+  const A2=[[-480,-85],[150,-85],[150,-210],[500,0],[150,210],[150,85],[-480,85],[-480,-85]];
+  for(const z of [-60,60]){const pts=A2.map(([x,y])=>add(e.c,rotZ([x+push,y,z],dir)));line3(pts,sm(d,z<0?0:.15,z<0?.7:.85),'g',z<0?.95:.6,3,13);}
+  A2.slice(0,7).forEach(([x,y],i)=>{const a=add(e.c,rotZ([x+push,y,-60],dir)),b=add(e.c,rotZ([x+push,y,60],dir));line3([a,b],sm(d,.6+i*.04,.85+i*.04),'w',.5,1.6,6);});
+  // chevrons and particles streaming forward
+  for(let k=0;k<3;k++){const ph=((t*.6+k/3)%1);const x0=-700+ph*420;const al=Math.sin(Math.PI*ph)*d;const ch=[[x0-60,-110],[x0+40,0],[x0-60,110]].map(([x,y])=>add(e.c,rotZ([x,y,0],dir)));line3(ch,1,k===1?'r':'g',.8*al,2.6,12);}
+  for(let k=0;k<16;k++){const ph=((t*.5+k*.137)%1);const y=((k*53)%9-4)*28;const Q=P(add(e.c,rotZ([-900+ph*1500,y,0],dir)));const al=Math.sin(Math.PI*ph)*d;spr(SW,Q[0],Q[1],6,.8*al);spr(SG,Q[0],Q[1],20,.4*al);}
+  const tip=P(add(e.c,rotZ([500+push,0,0],dir)));spr(SW,tip[0],tip[1],22,.9*d);spr(SG,tip[0],tip[1],120,.4*d);}}
+ // star drawn on top
+ drawStar(C0[0],C0[1],starR,1);
+ fx.save();fx.translate(W*.78,0);fx.rotate(.45);fx.translate(0,-3000);
+ for(const [o,w,a] of [[0,600,.04],[900,340,.03],[-800,420,.025]]){const lg=fx.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(210,225,255,0)');lg.addColorStop(.5,`rgba(220,230,255,${a})`);lg.addColorStop(1,'rgba(210,225,255,0)');fx.fillStyle=lg;fx.globalAlpha=1;fx.fillRect(o-w,0,2*w,9000);}
+ fx.restore();fx.globalCompositeOperation='source-over';
+ const v2=fx.createRadialGradient(cx,cy,H*.45,cx,cy,W*.62);v2.addColorStop(0,'rgba(5,10,18,0)');v2.addColorStop(1,'rgba(5,10,18,.55)');fx.globalAlpha=1;fx.fillStyle=v2;fx.fillRect(0,0,W,H);
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
