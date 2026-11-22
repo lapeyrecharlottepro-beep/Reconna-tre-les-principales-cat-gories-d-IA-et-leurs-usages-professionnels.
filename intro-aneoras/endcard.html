@@ -1,0 +1,77 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>ANEORAS end card</title>
+<style>
+@font-face{font-family:'Montserrat';font-weight:300;src:url(fonts/montserrat-latin-300-normal.woff2) format('woff2')}
+@font-face{font-family:'Montserrat';font-weight:400;src:url(fonts/montserrat-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Montserrat';font-weight:500;src:url(fonts/montserrat-latin-500-normal.woff2) format('woff2')}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#08121f}
+.l{position:absolute;inset:0}
+#logo{position:absolute;left:480px;width:960px;height:196.1px}
+#logo .part{position:absolute;inset:0;background:url(logo_rgba.png) 0 0/100% 100% no-repeat}
+#emb{clip-path:polygon(0% 0%,16.44% 0%,16.44% 27.6%,20.4% 27.6%,20.4% 0%,22.77% 0%,22.77% 100%,0% 100%)}
+#star{clip-path:polygon(16.44% 0%,20.4% 0%,20.4% 27.6%,16.44% 27.6%)}
+#word{clip-path:inset(0 0 0 22.77%)}
+#sweep{position:absolute;inset:0;-webkit-mask:url(logo_rgba.png) 0 0/100% 100% no-repeat;mask:url(logo_rgba.png) 0 0/100% 100% no-repeat;background:linear-gradient(100deg,transparent 42%,rgba(255,240,205,.9) 50%,transparent 58%);background-size:300% 100%;mix-blend-mode:screen}
+.txt{position:absolute;left:0;right:0;text-align:center;font-family:Montserrat;color:#ECECEF}
+#tag{font-weight:400;font-size:25px;letter-spacing:.42em;padding-left:.42em}
+#tag b{font-weight:400;color:#D6A13B}
+#sep{position:absolute;left:50%;width:120px;height:1.5px;margin-left:-60px;background:linear-gradient(90deg,rgba(214,161,59,0),#D6A13B 30%,#D6A13B 70%,rgba(214,161,59,0))}
+#dot{position:absolute;left:50%;width:7px;height:7px;margin-left:-3.5px;background:#933231;transform:rotate(45deg);box-shadow:0 0 10px rgba(147,50,49,.8)}
+.st{font-weight:300;font-size:33px;letter-spacing:.04em;line-height:1}
+#st2{background:linear-gradient(100deg,#B88626,#F4D58A 50%,#D6A13B);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:400}
+</style></head><body>
+<canvas id="bg" class="l" width="3840" height="2160" style="width:1920px;height:1080px"></canvas>
+<canvas id="fx" class="l" width="3840" height="2160" style="width:1920px;height:1080px;mix-blend-mode:screen"></canvas>
+<div id="logo"><div id="emb" class="part"></div><div id="word" class="part"></div><div id="star" class="part"></div><div id="sweep"></div></div>
+<div id="tag" class="txt">VOTRE POTENTIEL<b>.</b> NOTRE STRATÉGIE<b>.</b></div>
+<div id="sep"></div><div id="dot"></div>
+<div id="st1" class="txt st">De la connaissance à l’action.</div>
+<div id="st2" class="txt st">De l’action à la performance.</div>
+<canvas id="vs" class="l" width="3840" height="2160" style="width:1920px;height:1080px"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,DUR=12,HOLD=10;
+const bg=document.getElementById('bg').getContext('2d'),fx=document.getElementById('fx').getContext('2d'),vs=document.getElementById('vs').getContext('2d');
+const $=id=>document.getElementById(id);
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+const eio=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+function sprite(col){const s=document.createElement('canvas');s.width=s.height=128;const g=s.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+ gr.addColorStop(0,`rgba(${col},1)`);gr.addColorStop(.12,`rgba(${col},.85)`);gr.addColorStop(.3,`rgba(${col},.25)`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.fillRect(0,0,128,128);return s;}
+const SG=sprite('240,196,115'),SW=sprite('255,248,232');
+function spr(img,x,y,r,a){if(a<=.004)return;fx.globalAlpha=Math.min(1,a);fx.drawImage(img,x-r,y-r,2*r,2*r);}
+// identical background to the end of the previous sequence
+function drawBg(){bg.fillStyle='#08121f';bg.fillRect(0,0,W,H);let g=bg.createRadialGradient(cx,cy,0,cx,cy,W*.72);g.addColorStop(0,'rgba(30,53,77,1)');g.addColorStop(.55,'rgba(22,40,60,1)');g.addColorStop(1,'rgba(8,18,31,1)');bg.fillStyle=g;bg.fillRect(0,0,W,H);}
+// vector star of the previous shot (exact same spot & size), cross-fading into the logo's own star
+const STARU=[...Array(1201)].map((_,i)=>{const a=i/1200*Math.PI*2+Math.PI/2;const ca=Math.cos(a),sa=Math.sin(a);let x=.89*Math.sign(ca)*Math.pow(Math.abs(ca),5),y=Math.sign(sa)*Math.pow(Math.abs(sa),5);const C=.03;return [x+Math.sign(x)*C*(1-Math.abs(y)),-(y+Math.sign(y)*C*(1-Math.abs(x)/.89))]});
+const LW=1920,LH=LW*646/3162,FIN=[cx-LW/2+.18469*LW,cy-LH/2+.18731*LH],FR=.018*LW;
+function vstar(a){vs.clearRect(0,0,W,H);if(a<=0)return;vs.save();vs.translate(...FIN);vs.scale(FR,FR);vs.beginPath();STARU.forEach((q,i)=>i?vs.lineTo(q[0],q[1]):vs.moveTo(q[0],q[1]));vs.closePath();
+ let gr=vs.createRadialGradient(0,0,0,0,0,1);gr.addColorStop(0,`rgba(255,240,207,${a})`);gr.addColorStop(.1,`rgba(246,214,152,${a})`);gr.addColorStop(.3,`rgba(224,172,98,${a})`);gr.addColorStop(.65,`rgba(204,148,70,${a})`);gr.addColorStop(1,`rgba(176,126,56,${a})`);vs.fillStyle=gr;vs.fill();vs.restore();}
+// final layout (CSS px): the block logo + tagline + separator + statement is vertically balanced
+const LOGO_TOP0=1080/2-196.1/2, LOGO_TOP1=335;
+window.DURATION=DUR;
+window.seek=T=>{const t=Math.min(T,HOLD);drawBg();fx.clearRect(0,0,W,H);fx.globalCompositeOperation='lighter';
+ const rise=eio(sm(t,3.4,5.2));const top=lerp(LOGO_TOP0,LOGO_TOP1,rise);const dy=(top-LOGO_TOP0)*2;
+ $('logo').style.top=top+'px';
+ // 1) star (previous shot) -> the logo's own star, with a subtle metallic glow
+ const sx=FIN[0],sy=FIN[1]+dy;vstar(1-sm(t,.15,.9));vs.canvas.style.transform=`translateY(${dy/2}px)`;
+ $('star').style.opacity=sm(t,.15,.9).toFixed(3);
+ const glow=sm(t,.3,1.6)*(1-.55*sm(t,4,6));spr(SG,sx,sy,260,.35*glow);spr(SW,sx,sy,46,.5*glow);
+ // 2) emblem (A + swoosh) appears with a golden glow
+ const ea=sm(t,.9,2.3);$('emb').style.opacity=ea.toFixed(3);$('emb').style.filter=`drop-shadow(0 0 ${(14*(1-.6*sm(t,2.3,4))).toFixed(1)}px rgba(214,161,59,${(.55*ea).toFixed(3)}))`;
+ {const ex=cx-LW/2+.11*LW,ey=cy+dy;spr(SG,ex,ey,700,.12*ea*(1-.6*sm(t,3,5)));}
+ // 3) wordmark fades in elegantly (exact original typography & spacing, soft left-to-right reveal)
+ const wa=sm(t,2.2,3.8);const wm=lerp(-20,120,eio(sm(t,2.2,3.9)));
+ $('word').style.opacity=wa.toFixed(3);$('word').style.webkitMaskImage=$('word').style.maskImage=`linear-gradient(90deg,#000 ${wm}%,transparent ${wm+18}%)`;
+ // 4) tagline, separator, closing statement
+ const base=top+196.1;
+ const tg=sm(t,4.4,5.8);$('tag').style.top=(base+58+(1-tg)*10)+'px';$('tag').style.opacity=tg.toFixed(3);$('tag').style.letterSpacing=(0.42+0.12*(1-tg)).toFixed(3)+'em';
+ const sp=sm(t,5.4,6.4);$('sep').style.top=(base+132)+'px';$('sep').style.transform=`scaleX(${sp.toFixed(3)})`;$('sep').style.opacity=sp.toFixed(3);
+ $('dot').style.top=(base+128.5)+'px';$('dot').style.opacity=sm(t,6,6.6).toFixed(3);
+ const s1=sm(t,6.3,7.6),s2=sm(t,7.1,8.4);$('st1').style.top=(base+176+(1-s1)*10)+'px';$('st1').style.opacity=s1.toFixed(3);$('st2').style.top=(base+228+(1-s2)*10)+'px';$('st2').style.opacity=s2.toFixed(3);
+ // 5) a subtle golden light passes across the logo and fades
+ const sw=cl((t-8.2)/1.6);$('sweep').style.backgroundPosition=`${(100-sw*100).toFixed(2)}% 0`;$('sweep').style.opacity=(sw>0&&sw<1)?(Math.sin(Math.PI*sw)*.9).toFixed(3):'0';
+ {const lx=cx-LW/2+LW*lerp(-.05,1.05,sw),ly=cy+dy;if(sw>0&&sw<1)spr(SG,lx,ly,520,.14*Math.sin(Math.PI*sw));}
+ fx.globalCompositeOperation='source-over';fx.globalAlpha=1;
+ const v2=fx.createRadialGradient(cx,cy,H*.5,cx,cy,W*.62);v2.addColorStop(0,'rgba(8,18,31,0)');v2.addColorStop(1,'rgba(8,18,31,.5)');fx.fillStyle=v2;fx.fillRect(0,0,W,H);
+};
+window.ready=Promise.all([new Promise(r=>{const i=new Image();i.onload=r;i.src='logo_rgba.png'}),document.fonts.load('300 33px Montserrat'),document.fonts.load('400 25px Montserrat')]).then(()=>{seek(0);return true});
+</script></body></html>
