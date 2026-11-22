@@ -1,0 +1,111 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS architecture</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="c" width="3840" height="2160"></canvas><canvas id="fx" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,F=2300,DUR=12;
+const bgc=document.getElementById('bg').getContext('2d'),c=document.getElementById('c').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+let seed=4242;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+// ---------- blocks ----------
+const CELL=430,blocks=[];
+for(let i=-13;i<=13;i++)for(let k=0;k<12;k++){if(rnd()<.52)continue;
+ const r=rnd();const b={x:i*CELL+(rnd()-.5)*40,z:500+k*CELL,w:180+rnd()*190,d:180+rnd()*190,h:120+Math.pow(rnd(),1.7)*2300,y0:rnd()<.16?300+rnd()*900:0,
+  kind:r<.28?'gold':r<.33?'red':'glass',rot:0,
+  born:-1,dies:99,delay:rnd()*1.3,ph:rnd()};
+ // morph keyframes
+ b.th=2.8+rnd()*7.5;b.h2=Math.max(100,b.h*(rnd()<.5?.35+rnd()*.4:1.4+rnd()*.9));
+ b.tm=rnd()<.35?3.5+rnd()*7:99;b.dx=(rnd()<.5?-1:1)*CELL*(rnd()<.7?1:2);b.dzm=(rnd()<.3?(rnd()<.5?-1:1)*CELL:0);
+ b.tr=rnd()<.22?3+rnd()*7:99;
+ const e=rnd();if(e<.2)b.dies=4.5+rnd()*6.5;else if(e<.4)b.born=3.8+rnd()*6.5;
+ // network origin for each of the 12 edges (only for blocks present at start)
+ b.net=[...Array(8)].map(()=>[(rnd()-.5)*1300,(rnd()-.3)*1100,(rnd()-.5)*1300]);b.eshow=[...Array(12)].map(()=>rnd()<.55);
+ b.parts=[...Array(46)].map(()=>({u:rnd(),v:rnd(),w:rnd(),vx:(rnd()-.5)*420,vy:120+rnd()*520,vz:(rnd()-.5)*420,s:rnd(),g:rnd()<.6}));
+ blocks.push(b);}
+const EDGES=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+const FACES=[[0,1,2,3,[0,-1,0]],[4,5,6,7,[0,1,0]],[0,1,5,4,[0,0,-1]],[2,3,7,6,[0,0,1]],[1,2,6,5,[1,0,0]],[3,0,4,7,[-1,0,0]]];
+function state(b,t){ // current geometry
+ const hk=sm(t,b.th,b.th+2.2),mk=sm(t,b.tm,b.tm+2.6),rk=sm(t,b.tr,b.tr+3);
+ let s=1;if(b.born>0)s=sm(t,b.born+.8,b.born+2.4);
+ return {x:b.x+b.dx*mk,z:b.z+b.dzm*mk,y:b.y0,w:b.w,d:b.d,h:lerp(b.h,b.h2,hk)*(b.born>0?.15+.85*s:1),rot:rk*Math.PI/2};}
+function verts(g){const v=[],ca=Math.cos(g.rot),sa=Math.sin(g.rot);
+ for(const yy of [g.y,g.y+g.h])for(const [px,pz] of [[-g.w/2,-g.d/2],[g.w/2,-g.d/2],[g.w/2,g.d/2],[-g.w/2,g.d/2]])
+  v.push([g.x+px*ca-pz*sa,yy,g.z+px*sa+pz*ca]);return v;}
+// ---------- camera ----------
+let CAM;
+function setCam(t){const k=t/DUR,e=k*k*(3-2*k)*.4+k*.6;CAM={x:lerp(-2600,2600,e),y:1150+Math.sin(t*.3)*60,z:-2100+Math.sin(t*.2)*120,yaw:lerp(.16,-.16,e),pitch:.16};
+ CAM.cy=Math.cos(CAM.yaw);CAM.sy=Math.sin(CAM.yaw);CAM.cp=Math.cos(CAM.pitch);CAM.sp=Math.sin(CAM.pitch);}
+function tr(p){const dx=p[0]-CAM.x,dy=p[1]-CAM.y,dz=p[2]-CAM.z;const x1=dx*CAM.cy-dz*CAM.sy,z1=dx*CAM.sy+dz*CAM.cy;
+ const y2=dy*CAM.cp+z1*CAM.sp,z2=-dy*CAM.sp+z1*CAM.cp;return [x1,y2,z2];}
+const pr=q=>[cx+q[0]*F/q[2],cy-q[1]*F/q[2]];
+const fog=z=>cl((z-150)/500)*cl(1-(z-3500)/8000);
+function glow(g,x,y,r,col,a){if(a<=.005)return;const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,`rgba(${col},${a})`);gr.addColorStop(.35,`rgba(${col},${a*.35})`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();}
+function line(g,a,b,col,al,w){g.strokeStyle=`rgba(${col},${al})`;g.lineWidth=w;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();}
+window.DURATION=DUR;
+window.seek=t=>{setCam(t);
+ // background (same universe: navy #1E354D, vignette, light shafts)
+ bgc.fillStyle='#050b14';bgc.fillRect(0,0,W,H);
+ let g=bgc.createRadialGradient(cx,cy*.8,0,cx,cy,W*.65);g.addColorStop(0,'rgba(30,53,77,1)');g.addColorStop(.55,'rgba(22,40,60,.9)');g.addColorStop(1,'rgba(5,11,20,0)');bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ bgc.save();bgc.translate(W*.7,0);bgc.rotate(.5);bgc.translate(0,-3000);
+ for(const [o,w,a] of [[0,560,.07],[800,320,.05],[-700,400,.045]]){const lg=bgc.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(255,235,200,0)');lg.addColorStop(.5,`rgba(255,235,200,${a*(.8+.2*Math.sin(t*.5+o))})`);lg.addColorStop(1,'rgba(255,235,200,0)');bgc.fillStyle=lg;bgc.fillRect(o-w,0,2*w,9000);}
+ bgc.restore();
+ c.clearRect(0,0,W,H);fx.clearRect(0,0,W,H);c.lineCap=fx.lineCap='round';c.lineJoin='round';
+ // ground grid (gold, fading)
+ const ga=sm(t,1.5,4)*.5;
+ if(ga>0){for(let i=-16;i<=16;i++)for(let k=-2;k<16;k++){const x0=i*CELL-CELL/2,z0=300+k*CELL-CELL/2;
+   for(const [p,q] of [[[x0,0,z0],[x0+CELL,0,z0]],[[x0,0,z0],[x0,0,z0+CELL]]]){const A=tr(p),B=tr(q);if(A[2]<120||B[2]<120)continue;
+    const f=Math.min(fog(A[2]),fog(B[2]));line(bgc,pr(A),pr(B),'214,170,95',ga*f*.5,1.6);}}}
+ // collect blocks with depth
+ const list=[];
+ for(const b of blocks){if(b.born>0&&t<b.born+.8){ }const gm=state(b,t);const cc=tr([gm.x,gm.y+gm.h/2,gm.z]);list.push({b,gm,d:cc[2]});}
+ list.sort((p,q)=>q.d-p.d);
+ for(const {b,gm,d} of list){if(d<200)continue;const f=fog(d);if(f<=.01)continue;
+  const V=verts(gm),T=V.map(tr);if(T.some(q=>q[2]<60))continue;const P=T.map(pr);
+  const m=b.born>0?1:sm(t,.5+b.delay,2.7+b.delay);            // network -> structure morph
+  let alive=1;if(b.born>0)alive=sm(t,b.born+.6,b.born+2.2);if(t>b.dies)alive=1-sm(t,b.dies,b.dies+1.6);
+  const faceA=(b.born>0?alive:sm(t,2.2+b.delay,3.6+b.delay)*alive)*f;
+  // faces
+  const vis=new Set();
+  for(const fc of FACES){const n=fc[4];const ca=Math.cos(gm.rot),sa=Math.sin(gm.rot);const nw=[n[0]*ca-n[2]*sa,n[1],n[0]*sa+n[2]*ca];
+   const ctr=[0,1,2,3].map(i=>V[fc[i]]).reduce((s,p)=>[s[0]+p[0]/4,s[1]+p[1]/4,s[2]+p[2]/4],[0,0,0]);
+   const vd=[CAM.x-ctr[0],CAM.y-ctr[1],CAM.z-ctr[2]];if(nw[0]*vd[0]+nw[1]*vd[1]+nw[2]*vd[2]<=0)continue;for(let i=0;i<4;i++)vis.add(Math.min(fc[i],fc[(i+1)%4])+'_'+Math.max(fc[i],fc[(i+1)%4]));if(faceA<=.01)continue;
+   const lit=nw[1]>0?1:(.55+.35*Math.max(0,nw[0]*.6-nw[2]*.4+.3));
+   const pts=[0,1,2,3].map(i=>P[fc[i]]);
+   let gr;if(nw[1]===0){const top=[(pts[2][0]+pts[3][0])/2,(pts[2][1]+pts[3][1])/2],bot=[(pts[0][0]+pts[1][0])/2,(pts[0][1]+pts[1][1])/2];gr=c.createLinearGradient(bot[0],bot[1],top[0],top[1]);}
+   else gr=c.createLinearGradient(pts[0][0],pts[0][1],pts[2][0],pts[2][1]);
+   const L=lit;const C=b.kind==='gold'?[[70,50,22],[176,138,72],[226,196,140]]:b.kind==='red'?[[48,14,18],[110,38,42],[150,60,62]]:[[14,28,46],[30,56,86],[48,80,112]];
+   const sh=(q,k)=>`rgba(${q[0]*k|0},${q[1]*k|0},${q[2]*k|0},`;
+   gr.addColorStop(0,sh(C[0],L)+(.95*faceA)+')');gr.addColorStop(.7,sh(C[1],L)+(.93*faceA)+')');gr.addColorStop(1,sh(C[2],Math.min(1,L*1.05))+(.93*faceA)+')');
+   c.fillStyle=gr;c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<4;i++)c.lineTo(pts[i][0],pts[i][1]);c.closePath();c.fill();
+   // subtle horizontal light bands on glass facades
+   if(b.kind==='glass'&&nw[1]===0&&gm.h>700){const nb=Math.floor(gm.h/260);for(let j=1;j<nb;j++){const k=j/nb;const a1=[lerp(pts[0][0],pts[3][0],k),lerp(pts[0][1],pts[3][1],k)],a2=[lerp(pts[1][0],pts[2][0],k),lerp(pts[1][1],pts[2][1],k)];line(c,a1,a2,'214,170,95',.10*faceA,1.2);}}
+  }
+  // edges: white luminous core + gold glow (start as network segments)
+  const ew=Math.max(1.2,Math.min(4.5,F/d*1.4));
+  const edgeCol=b.kind==='red'?'200,80,80':'214,170,95';
+  const nT=m<1?V.map((v,i)=>tr([v[0]+b.net[i][0],v[1]+b.net[i][1],v[2]+b.net[i][2]])):null;
+  if(nT&&nT.some(q=>q[2]<60))continue;
+  const CUR=m<1?T.map((q,i)=>q.map((v,j)=>lerp(nT[i][j],v,sm(m,0,1)))):T;const CP=CUR.map(pr);
+  c.globalCompositeOperation='lighter';
+  for(let e=0;e<12;e++){const [i0,i1]=EDGES[e];
+   const front=vis.has(Math.min(i0,i1)+'_'+Math.max(i0,i1));
+   // while still a network: only some connections; once a structure: only visible edges
+   const w8=m<1?(b.eshow[e]?1-sm(m,.75,1)*(front?0:1):(front?sm(m,.3,.8):0)):(front?1:0);if(w8<=.01)continue;
+   const pa=CP[i0],pb=CP[i1];const al=f*alive*w8;if(al<=.01)continue;
+   line(c,pa,pb,edgeCol,al*.22,ew*4);line(c,pa,pb,b.kind==='glass'?'240,236,222':'240,205,130',al*.8,ew*.8);}
+  if(m<1)for(let i=0;i<8;i++){const q=CP[i];glow(c,q[0],q[1],ew*9,'255,236,200',.55*f*(1-m));glow(c,q[0],q[1],ew*2.2,'255,252,240',.9*f*(1-m));}
+  c.globalCompositeOperation='source-over';
+  // burgundy pulses climbing vertical edges
+  if((b.kind==='red'||b.ph<.12)&&alive>.5&&m>=1){for(const e of [8,10]){const q=(t*.22+b.ph*3+e*.13)%1.3;if(q>1)continue;const [i0,i1]=EDGES[e];if(!vis.has(Math.min(i0,i1)+'_'+Math.max(i0,i1)))continue;const p=pr(T[i0].map((v,j)=>lerp(v,T[i1][j],q)));
+    const r=Math.max(10,F/d*30);glow(fx,p[0],p[1],r*2.4,'147,50,49',.9*f);glow(fx,p[0],p[1],r*.6,'230,120,110',.7*f);}}
+ }
+ // dissolving / emerging particles
+ for(const b of blocks){let k,dir;if(t>b.dies&&t<b.dies+3.2){k=t-b.dies;dir=1}else if(b.born>0&&t>b.born-1.6&&t<b.born+1.2){k=b.born+1.2-t;dir=-1}else continue;
+  const gm=state(b,dir>0?b.dies:b.born+2.4);const a=dir>0?(1-cl(k/3.2))*sm(k,0,.4):(1-cl(k/2.8));
+  for(const p of b.parts){const ca=Math.cos(gm.rot),sa=Math.sin(gm.rot);const lx=(p.u-.5)*gm.w,lz=(p.w-.5)*gm.d;
+   const w=[gm.x+lx*ca-lz*sa+p.vx*k,gm.y+p.v*gm.h+p.vy*k,gm.z+lx*sa+lz*ca+p.vz*k];const q=tr(w);if(q[2]<100)continue;const s=pr(q);const f=fog(q[2]);
+   const r=Math.max(3,(3+p.s*6)*F/q[2]*1.2);glow(fx,s[0],s[1],r*3,p.g?'236,196,120':'230,238,255',a*f*.8);glow(fx,s[0],s[1],r*.6,'255,252,240',a*f);}}
+ // fade from previous scene / to next
+ const fi=1-sm(t,0,.8);if(fi>0){fx.fillStyle=`rgba(0,0,0,0)`;c.fillStyle=`rgba(5,11,20,${fi})`;c.fillRect(0,0,W,H);}
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
