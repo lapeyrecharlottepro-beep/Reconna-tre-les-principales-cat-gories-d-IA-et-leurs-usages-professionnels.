@@ -1,0 +1,98 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ANEORAS convergence</title>
+<style>*{margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#000}canvas{position:absolute;inset:0;width:1920px;height:1080px}</style></head><body>
+<canvas id="bg" width="3840" height="2160"></canvas><canvas id="fx" width="3840" height="2160" style="mix-blend-mode:screen"></canvas>
+<script>
+const W=3840,H=2160,cx=W/2,cy=H/2,F=2300,DUR=15;
+const bgc=document.getElementById('bg').getContext('2d'),fx=document.getElementById('fx').getContext('2d');
+let seed=777;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),sm=(t,a,b)=>{const k=cl((t-a)/(b-a));return k*k*(3-2*k)},lerp=(a,b,k)=>a+(b-a)*k;
+const eio=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+function sprite(col){const s=document.createElement('canvas');s.width=s.height=128;const g=s.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+ gr.addColorStop(0,`rgba(${col},1)`);gr.addColorStop(.12,`rgba(${col},.85)`);gr.addColorStop(.3,`rgba(${col},.25)`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.fillRect(0,0,128,128);return s;}
+const SG=sprite('240,196,115'),SW=sprite('255,248,232'),SR=sprite('147,50,49'),SBW=sprite('210,225,250');
+function spr(img,x,y,r,a){if(a<=.004)return;fx.globalAlpha=Math.min(1,a);fx.drawImage(img,x-r,y-r,2*r,2*r);}
+// ---------- target geometry: nested 4-point stars, rings, spokes ----------
+function starPoly(R,r,rot){const v=[];for(let i=0;i<8;i++){const a=rot+i*Math.PI/4+Math.PI/2;const rr=i%2?r:R;v.push([Math.cos(a)*rr,Math.sin(a)*rr]);}v.push(v[0]);return v;}
+const circ=(R,n)=>[...Array(n+1)].map((_,i)=>[Math.cos(i/n*6.2832)*R,Math.sin(i/n*6.2832)*R]);
+const SHAPES=[{pts:starPoly(1050,150,0),w:.36,col:'gold',t:6.4},{pts:starPoly(560,120,Math.PI/4),w:.16,col:'red',t:7.1},{pts:circ(760,120),w:.16,col:'gold',t:7.6},{pts:circ(1300,160),w:.1,col:'faint',t:8.1}];
+// spokes from ring to star tips
+for(let i=0;i<8;i++){const a=i*Math.PI/4+Math.PI/8;SHAPES.push({pts:[[Math.cos(a)*300,Math.sin(a)*300],[Math.cos(a)*760,Math.sin(a)*760]],w:.018,col:'faint',t:8.4+i*.08});}
+function polyLen(p){let L=0;for(let i=1;i<p.length;i++)L+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);return L}
+function samplePoly(p,u){let L=polyLen(p)*u;for(let i=1;i<p.length;i++){const d=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);if(L<=d){const k=d?L/d:0;return [lerp(p[i-1][0],p[i][0],k),lerp(p[i-1][1],p[i][1],k)]}L-=d}return p[p.length-1];}
+// ---------- particles: start as disconnected islands ----------
+const N=4200,parts=[];
+const isl=[...Array(16)].map(()=>({c:[(rnd()-.5)*5200,(rnd()-.5)*2600,-2800+rnd()*2900],r:170+rnd()*230,d:rnd()}));
+let wsum=SHAPES.reduce((s,x)=>s+x.w,0);
+for(let i=0;i<N;i++){let tg,shape=-1;const u=rnd()*1.12;
+ if(u<1){let acc=0,k=0;const v=u*wsum;for(k=0;k<SHAPES.length;k++){acc+=SHAPES[k].w;if(v<=acc)break}shape=Math.min(k,SHAPES.length-1);const q=samplePoly(SHAPES[shape].pts,rnd());tg=[q[0],q[1],(rnd()-.5)*24];}
+ else{const a=rnd()*6.28,b=rnd()*3.14,r=Math.pow(rnd(),2)*90;tg=[Math.cos(a)*Math.sin(b)*r,Math.cos(b)*r,Math.sin(a)*Math.sin(b)*r];}
+ const loose=rnd()<.18;const I=isl[Math.floor(rnd()*isl.length)];
+ let st;if(loose){st=[(rnd()-.5)*6400,(rnd()-.5)*3400,-3200+rnd()*3400]}
+ else{const a=rnd()*6.28,uu=rnd()*2-1,rr=Math.pow(rnd(),.5)*I.r;st=[I.c[0]+Math.cos(a)*Math.sqrt(1-uu*uu)*rr,I.c[1]+uu*rr*.5,I.c[2]+Math.sin(a)*Math.sqrt(1-uu*uu)*rr]}
+ const delay=loose?1.6+rnd()*3.4:1.8+I.d*2.8+rnd()*.5;
+ parts.push({st,tg,shape,delay,dur:4.2+rnd()*1.6,swirl:(rnd()<.5?-1:1)*(.6+rnd()*.9),lost:rnd()<.2,s:rnd(),ph:rnd()*6.28,isl:loose?null:I});}
+// island-internal links (fragments) shown at the start
+const links=[];{const byI=new Map();parts.forEach((p,i)=>{if(p.isl){if(!byI.has(p.isl))byI.set(p.isl,[]);byI.get(p.isl).push(i)}});
+ for(const arr of byI.values())for(let k=0;k<arr.length;k+=3){let b=-1,bd=1e12;for(const j of arr){if(j===arr[k])continue;const a=parts[arr[k]].st,c=parts[j].st;const d=(a[0]-c[0])**2+(a[1]-c[1])**2+(a[2]-c[2])**2;if(d<bd){bd=d;b=j}}if(b>=0)links.push([arr[k],b]);}}
+// ---------- camera: pull back ----------
+let CAM;
+function lookAt(p,tg){let f=[tg[0]-p[0],tg[1]-p[1],tg[2]-p[2]];let n=Math.hypot(...f);f=f.map(v=>v/n);let r=[f[2],0,-f[0]];n=Math.hypot(...r);r=r.map(v=>v/n);
+ const u=[r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0]];CAM={p,f,r,u};}
+function setCam(t){const k=eio(cl(t/DUR));const dist=lerp(1500,4700,k);const az=Math.PI/2+lerp(.45,0,sm(t,0,12)),el=lerp(.22,0,sm(t,0,11));
+ lookAt([Math.cos(az)*Math.cos(el)*dist,Math.sin(el)*dist,Math.sin(az)*Math.cos(el)*dist],[0,0,0]);}
+function tr(q){const d=[q[0]-CAM.p[0],q[1]-CAM.p[1],q[2]-CAM.p[2]];return [d[0]*CAM.r[0]+d[1]*CAM.r[1]+d[2]*CAM.r[2],d[0]*CAM.u[0]+d[1]*CAM.u[1]+d[2]*CAM.u[2],d[0]*CAM.f[0]+d[1]*CAM.f[1]+d[2]*CAM.f[2]];}
+const pr=q=>[cx-q[0]*F/q[2],cy+q[1]*F/q[2]];
+// structure transform: slow 3D settle + final contraction toward the centre
+function sT(t,v){const rot=lerp(.5,0,sm(t,4,11))+Math.sin(t*.25)*.04;const tilt=lerp(-.35,0,sm(t,4,11));const sc=lerp(1,.32,eio(cl((t-11)/4)));
+ let [x,y,z]=v;[x,z]=[x*Math.cos(rot)-z*Math.sin(rot),x*Math.sin(rot)+z*Math.cos(rot)];[y,z]=[y*Math.cos(tilt)-z*Math.sin(tilt),y*Math.sin(tilt)+z*Math.cos(tilt)];return [x*sc,y*sc,z*sc];}
+const dust=[...Array(400)].map(()=>({p:[(rnd()-.5)*12000,(rnd()-.5)*7000,(rnd()-.5)*12000],s:rnd(),ph:rnd()*6.28}));
+window.DURATION=DUR;
+window.seek=t=>{setCam(t);const fade=sm(t,0,1.2);
+ bgc.fillStyle='#070f1a';bgc.fillRect(0,0,W,H);
+ let g=bgc.createRadialGradient(cx,cy,0,cx,cy,W*.7);g.addColorStop(0,`rgba(30,53,77,${fade})`);g.addColorStop(.6,`rgba(18,34,52,${fade})`);g.addColorStop(1,'rgba(7,15,26,0)');bgc.fillStyle=g;bgc.fillRect(0,0,W,H);
+ fx.clearRect(0,0,W,H);fx.globalCompositeOperation='lighter';fx.lineCap='round';fx.lineJoin='round';
+ for(const d of dust){const q=tr(d.p);if(q[2]<300)continue;const Q=pr(q);spr(SBW,Q[0],Q[1],Math.max(2,F/q[2]*12),.18*fade*(.5+.5*Math.sin(t*.8+d.ph)));}
+ // particle positions
+ const pos=new Array(N),prog=new Array(N);
+ for(let i=0;i<N;i++){const p=parts[i];const k=eio(cl((t-p.delay)/p.dur));prog[i]=k;
+  // reverse drift: before converging, fragments still drift slightly outward, then turn back
+  const drift=(1-sm(t,0,p.delay))*.0;
+  let s=p.st.map((v,j)=>v+Math.sin(t*.4+p.ph+j)*18);
+  const tg=sT(t,p.tg);
+  // curved path: swirl around the centre while converging
+  const ang=p.swirl*Math.sin(Math.PI*k)*.45;const ca=Math.cos(ang),sa=Math.sin(ang);
+  let x=lerp(s[0],tg[0],k),y=lerp(s[1],tg[1],k),z=lerp(s[2],tg[2],k);[x,z]=[x*ca-z*sa,x*sa+z*ca];
+  pos[i]=[x,y,z];}
+ // fragment links fade as islands dissolve into motion
+ fx.globalAlpha=1;for(const [a,b] of links){const k=Math.max(prog[a],prog[b]);const al=.3*fade*(1-sm(k,0,.1));if(al<=.01)continue;const A=tr(pos[a]),B=tr(pos[b]);if(A[2]<500||B[2]<500)continue;
+  const PA=pr(A),PB=pr(B);fx.strokeStyle=`rgba(226,184,104,${al})`;fx.lineWidth=Math.min(5,Math.max(1,F/A[2]*3));fx.beginPath();fx.moveTo(PA[0],PA[1]);fx.lineTo(PB[0],PB[1]);fx.stroke();}
+ // precise structure lines drawing in
+ const contract=eio(cl((t-11)/4));
+ for(const S of SHAPES){const k=sm(t,S.t,S.t+1.8);if(k<=0)continue;const n=Math.max(2,Math.ceil(S.pts.length*k));const P=[];
+  const L=polyLen(S.pts);for(let i=0;i<=80;i++){const u=i/80*k;const q=samplePoly(S.pts,u);P.push(pr(tr(sT(t,[q[0],q[1],0]))));}
+  const col=S.col==='gold'?'236,196,120':S.col==='red'?'176,64,62':'200,190,170';const base=S.col==='faint'?.35:.9;const al=base*fade*(1-contract*.55);
+  fx.strokeStyle=`rgba(${col},${al*.22})`;fx.lineWidth=S.col==='faint'?6:14;fx.beginPath();P.forEach((q,i)=>i?fx.lineTo(q[0],q[1]):fx.moveTo(q[0],q[1]));fx.stroke();
+  fx.strokeStyle=`rgba(${S.col==='red'?'214,120,110':'250,228,180'},${al})`;fx.lineWidth=S.col==='faint'?1.6:3;fx.beginPath();P.forEach((q,i)=>i?fx.lineTo(q[0],q[1]):fx.moveTo(q[0],q[1]));fx.stroke();
+  // drawing head
+  if(k<1){const q=P[P.length-1];spr(SW,q[0],q[1],22,.9);spr(SG,q[0],q[1],80,.5);}}
+ // particles
+ for(let i=0;i<N;i++){const p=parts[i];const q=tr(pos[i]);if(q[2]<60)continue;const Q=pr(q);if(Q[0]<-50||Q[0]>W+50||Q[1]<-50||Q[1]>H+50)continue;
+  const sc=F/q[2];const k=prog[i];const tw=.7+.3*Math.sin(t*2+p.ph);const near=cl((q[2]-150)/500);
+  const r=Math.max(2.2,(5+p.s*6)*sc)*(1-.3*k);const red=p.lost?1-sm(k,.2,.8):0;const a=fade*tw*near*(.55+.45*k);
+  spr(SG,Q[0],Q[1],r*2.6,.4*a*(1-red));spr(SR,Q[0],Q[1],r*2.6,.6*a*red);spr(SW,Q[0],Q[1],r*.55,.85*a);}
+ // the central point of light and a discreet 4-point star geometry (not the logo)
+ const C=pr(tr([0,0,0]));const sc0=F/tr([0,0,0])[2];
+ const core=sm(t,6,11)*.5+contract*.8;
+ spr(SG,C[0],C[1],sc0*(500+contract*400),.25*core);spr(SW,C[0],C[1],sc0*(70+contract*60),.8*core);
+ const ray=sm(t,10.5,14.5);if(ray>0){fx.globalAlpha=1;for(const [len,th,rot] of [[1,1,0],[.7,1,Math.PI/2],[.32,.7,Math.PI/4],[.32,.7,-Math.PI/4]]){
+   fx.save();fx.translate(C[0],C[1]);fx.rotate(rot);const L2=sc0*1700*len*ray;const lg=fx.createLinearGradient(-L2,0,L2,0);lg.addColorStop(0,'rgba(255,220,150,0)');lg.addColorStop(.5,`rgba(255,246,222,${.85*ray})`);lg.addColorStop(1,'rgba(255,220,150,0)');
+   fx.fillStyle=lg;fx.beginPath();fx.ellipse(0,0,L2,Math.max(1.5,sc0*7*th),0,0,7);fx.fill();fx.restore();}}
+ fx.globalAlpha=1;fx.globalCompositeOperation='source-over';
+ // volumetric light + vignette
+ fx.save();fx.globalCompositeOperation='lighter';fx.translate(W*.78,0);fx.rotate(.45);fx.translate(0,-3000);
+ for(const [o,w,a] of [[0,600,.045],[900,340,.035],[-800,420,.03]]){const lg=fx.createLinearGradient(o-w,0,o+w,0);lg.addColorStop(0,'rgba(210,225,255,0)');lg.addColorStop(.5,`rgba(220,230,255,${a*fade})`);lg.addColorStop(1,'rgba(210,225,255,0)');fx.fillStyle=lg;fx.fillRect(o-w,0,2*w,9000);}
+ fx.restore();
+ const v2=fx.createRadialGradient(cx,cy,H*.45,cx,cy,W*.62);v2.addColorStop(0,'rgba(5,10,18,0)');v2.addColorStop(1,'rgba(5,10,18,.6)');fx.fillStyle=v2;fx.fillRect(0,0,W,H);
+};
+window.ready=Promise.resolve(true).then(()=>{seek(0);return true});
+</script></body></html>
