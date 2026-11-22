@@ -170,7 +170,7 @@ const AZ0=-.9+AZ[3000],TAU=Math.PI*2;let AZF=Math.PI/2;while(AZF-AZ0>Math.PI)AZF
 // camera keyframes: [t, tx, ty, dist, el, az]
 const CK=[[1,0,-80,3450,.3,AZ0],[3.6,MX[0],-60,2750,.14,AZF],[6.4,MX[0],-60,2750,.14,AZF],[9.4,MX[1],-60,2750,.15,AZF+.03],[12.4,MX[2],-60,2750,.14,AZF],[15.4,MX[3],-60,2750,.15,AZF-.03],[18.6,MX[4],-60,2800,.14,AZF],[22.6,0,-90,5300,.13,AZF],[30,0,-90,5650,.12,AZF+.05]];
 function setCam2(t){let k=0;while(k<CK.length-2&&t>CK[k+1][0])k++;const a=CK[k],b=CK[k+1];const u=eio(cl((t-a[0])/(b[0]-a[0])));
- const [tx,ty,dist,el,az]=[1,2,3,4,5].map(j=>lerp(a[j],b[j],u));lookAt([tx+Math.cos(az)*Math.cos(el)*dist,ty+Math.sin(el)*dist,Math.sin(az)*Math.cos(el)*dist],[tx,ty,0]);}
+ const [tx,ty,dist,el,az]=[1,2,3,4,5].map(j=>lerp(a[j],b[j],u));lookAt([tx+Math.cos(az)*Math.cos(el)*dist,ty*sm(t,1,3.6)+Math.sin(el)*dist,Math.sin(az)*Math.cos(el)*dist],[tx,ty,0]);}
 function barV2(i,h){const a=i/NB*Math.PI*2,c0=[Math.cos(a)*BR,-560,Math.sin(a)*BR];const U=[Math.cos(a),0,Math.sin(a)],T=[-Math.sin(a),0,Math.cos(a)];const o=[];
  for(const yy of [0,h])for(const [s1,s2] of [[-1,-1],[1,-1],[1,1],[-1,1]])o.push(add(c0,add(add(mul(U,s1*BW/2),mul(T,s2*BW/2)),[0,yy,0])));return o}
 function box(V,col,alpha){const T=V.map(tr);if(T.some(q=>q[2]<60))return;const Pp=T.map(pr);const camP=CAM.p;const bc=V.reduce((s,p)=>[s[0]+p[0]/8,s[1]+p[1]/8,s[2]+p[2]/8],[0,0,0]);
@@ -244,13 +244,22 @@ window.seek=T=>{if(T<1){seekA(30);return;}const t=T;setCam2(t);
  // ---- transition: bars retract, base circles stretch into a horizontal spine
  const rf=1-eio(sm(t,1,2.6));const sx=lerp(1,3.3,eio(sm(t,1.4,3.4))),sz=lerp(1,0,eio(sm(t,1.4,3.4)));
  if(rf>0){const order=[...Array(NB).keys()].map(i=>({i,d:tr(barV2(i,barH(i)*rf)[0])[2]})).sort((a,b)=>b.d-a.d);
-  for(const {i} of order){const V=barV2(i,Math.max(2,barH(i)*rf));box(V,[214,168,96],.92*Math.min(1,rf*3));const top=V.slice(4).reduce((s,p)=>[s[0]+p[0]/4,s[1]+p[1]/4,s[2]+p[2]/4],[0,0,0]);glowAt(add(top,[0,60,0]),18,.95*rf,SW);glowAt(add(top,[0,60,0]),70,.55*rf,i===3?SR:SG)}
-  glowAt([0,-500,0],240,.35*rf);glowAt([0,-500,0],22,.9*rf,SW);}
+  const v5=Math.min(1,rf*3);
+  for(const {i} of order){const V=barV2(i,Math.max(2,barH(i)*rf)),T2=V.map(tr);if(T2.some(q=>q[2]<60))continue;const Pp=T2.map(pr);const camP=CAM.p;
+   for(const [ix,n] of [[[0,1,5,4],[0,0,-1]],[[1,2,6,5],[1,0,0]],[[2,3,7,6],[0,0,1]],[[3,0,4,7],[-1,0,0]],[[4,5,6,7],[0,1,0]]]){
+    const ctr=ix.map(k=>V[k]).reduce((s,p)=>[s[0]+p[0]/4,s[1]+p[1]/4,s[2]+p[2]/4],[0,0,0]);const bc=V.reduce((s,p)=>[s[0]+p[0]/8,s[1]+p[1]/8,s[2]+p[2]/8],[0,0,0]);let nn=n[1]?[0,1,0]:[ctr[0]-bc[0],0,ctr[2]-bc[2]];{const l=Math.hypot(...nn)||1;nn=nn.map(x=>x/l)}
+    if((camP[0]-ctr[0])*nn[0]+(camP[1]-ctr[1])*nn[1]+(camP[2]-ctr[2])*nn[2]<=0)continue;const pts=ix.map(k=>Pp[k]);
+    const gr=c.createLinearGradient(pts[0][0],pts[0][1],pts[3][0],pts[3][1]);const lt=nn[1]?1.1:.55+.45*Math.abs(nn[0]*.7+nn[2]*.3);
+    gr.addColorStop(0,`rgba(${70*lt|0},${54*lt|0},${30*lt|0},${.92*v5})`);gr.addColorStop(1,`rgba(${Math.min(255,214*lt)|0},${Math.min(255,168*lt)|0},${Math.min(255,96*lt)|0},${.92*v5})`);c.fillStyle=gr;poly(c,pts);c.fill();}
+   fx.globalAlpha=1;for(const [p0,p1] of [[4,5],[5,6],[6,7],[7,4],[1,5],[2,6]]){fx.strokeStyle=`rgba(250,236,200,${.6*v5})`;fx.lineWidth=2;fx.beginPath();fx.moveTo(...Pp[p0]);fx.lineTo(...Pp[p1]);fx.stroke();}
+   const top=V.slice(4).reduce((s,p)=>[s[0]+p[0]/4,s[1]+p[1]/4,s[2]+p[2]/4],[0,0,0]);const Q=P(add(top,[0,60,0]));spr(SW,Q[0],Q[1],18,.95*rf);spr(i===3?SR:SG,Q[0],Q[1],70,.55*rf);}
+  {const Q=P([0,-500,0]);spr(SW,Q[0],Q[1],22,.9*rf);spr(SG,Q[0],Q[1],240,.35*rf);}}
+ {const C0=P([0,0,0]);const zc=tr([0,0,0])[2];spr(SG,C0[0],C0[1],F/zc*1400,.10*(1-sm(t,1,2.6)));}
  // particles of the previous system fade away as the bars retract
  const pf=1-sm(t,1,2.2);if(pf>0)for(let i=0;i<N;i++){const T5=TG[5][i];let w;if(T5.bar!=null){const V=barV2(T5.bar,barH(T5.bar)*rf);const [a,b]=EDG[T5.e];w=seg(V[a],V[b],T5.v)}else w=T5.p;
   const q=tr(w);if(q[2]<80)continue;const Q=pr(q);const sc=F/q[2];const tw=.7+.3*Math.sin((T+29)*2.2+PS[i].ph);const a=.175*tw*pf;const r=Math.max(2.2,(4+PS[i].s*5)*sc);spr(SG,Q[0],Q[1],r*2.4,.38*a);spr(SW,Q[0],Q[1],r*.5,.85*a);}
  line3([...Array(161)].map((_,i)=>{const a=i/160*TAU;return [Math.cos(a)*1120*sx,-560,Math.sin(a)*1120*sz]}),1,'g',1,2.6,12);
- line3([...Array(161)].map((_,i)=>{const a=i/160*TAU;return [Math.cos(a)*560*sx*1.9,-575,Math.sin(a)*560*sz]}),1,'r',.8,2,9);
+ line3([...Array(161)].map((_,i)=>{const a=i/160*TAU;const kk=eio(sm(t,1.4,3.4));return [Math.cos(a)*560*lerp(1,6.3,kk),-560-15*kk,Math.sin(a)*560*sz]}),1,'r',.85,2.2,10);
  // stems from each module down to the spine
  MX.forEach((x,k)=>{const a=sm(t,MT[k]+.3,MT[k]+1.4);line3([[x,-560,0],[x,-430,0]],a,'g',.7,1.6,7);glowAt([x,-560,0],14,.9*a,SW)});
  // ---- the luminous central connection (ANEORAS as one integrated partner)
