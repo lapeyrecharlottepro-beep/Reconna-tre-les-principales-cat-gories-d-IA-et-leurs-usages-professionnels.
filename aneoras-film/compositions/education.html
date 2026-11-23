@@ -1,0 +1,109 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font); }
+    #s8-bg { position: absolute; inset: 0; background: var(--navy); }
+    #s8-kick { position: absolute; left: 190px; top: 150px; font-weight: 500; font-size: 40px; color: #c9d3e0; }
+    #s8-title { position: absolute; left: 190px; top: 198px; font-weight: 700; font-size: 80px; color: var(--white); letter-spacing: -0.01em; }
+    #s8-rule { position: absolute; left: 190px; top: 310px; width: 100px; height: 4px; background: linear-gradient(90deg, #b88626, #f4d58a, #d6a13b); }
+    #s8-svg { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    .s8-node { position: absolute; width: 36px; height: 36px; border-radius: 50%; border: 4px solid var(--white); background: var(--navy); }
+    .s8-fillnode { position: absolute; inset: 4px; border-radius: 50%; background: var(--gold); }
+    .s8-lab { position: absolute; width: 420px; text-align: center; font-weight: 600; font-size: 32px; line-height: 1.25; color: var(--white); }
+    .w { display: inline-block; }
+    #s8-barwrap { position: absolute; width: 300px; height: 12px; border-radius: 6px; background: rgba(255,255,255,.2); overflow: hidden; }
+    #s8-bar { position: absolute; left: 0; top: 0; width: 300px; height: 12px; background: var(--gold); }
+    #s8-starpos { position: absolute; left: 0; top: 0; width: 56px; height: 56px; z-index: 4; }
+    #s8-star { position: absolute; left: 0; top: 0; width: 56px; height: 56px; }
+    #s8-star svg { width: 100%; height: 100%; display: block; }
+  </style>
+  <div id="root" data-composition-id="education" data-width="1920" data-height="1080">
+    <div id="s8-bg"></div>
+    <div id="s8-kick" class="split">Pour les</div>
+    <div id="s8-title" class="split">organisations éducatives</div>
+    <div id="s8-rule"></div>
+    <svg id="s8-svg" viewBox="0 0 1920 1080">
+      <path id="s8-path" d="M240 900 C600 900 700 760 1000 770 S1450 640 1680 600" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="4" stroke-dasharray="12 14"/>
+    </svg>
+    <div id="s8-n0" class="s8-node"><div class="s8-fillnode"></div></div>
+    <div id="s8-n1" class="s8-node"><div class="s8-fillnode"></div></div>
+    <div id="s8-n2" class="s8-node"><div class="s8-fillnode"></div></div>
+    <div id="s8-n3" class="s8-node"><div class="s8-fillnode"></div></div>
+    <div id="s8-l0" class="s8-lab split">Des formations sur-mesure</div>
+    <div id="s8-l1" class="s8-lab split">Des parcours pédagogiques modernisés</div>
+    <div id="s8-l2" class="s8-lab split">Des environnements digitaux</div>
+    <div id="s8-l3" class="s8-lab split">Mesurer la progression</div>
+    <div id="s8-barwrap"><div id="s8-bar"></div></div>
+    <div id="s8-starpos"><div id="s8-star"><svg viewBox="0 0 100 100"><defs><linearGradient id="s8-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B88626"/><stop offset=".5" stop-color="#F4D58A"/><stop offset="1" stop-color="#D6A13B"/></linearGradient></defs><path d="M50 0 C53 38 62 47 100 50 C62 53 53 62 50 100 C47 62 38 53 0 50 C38 47 47 38 50 0 Z" fill="url(#s8-g)"/></svg></div></div>
+  </div>
+  <script>
+    (function () {
+      function split(scope) {
+        scope.querySelectorAll(".split").forEach((el) => {
+          el.innerHTML = el.textContent.trim().split(/\s+/).map((w) => `<span class="w">${w}</span>`).join(" ");
+        });
+      }
+      const scope = document.querySelector('[data-composition-id="education"]');
+      split(scope);
+
+      // place milestones on the learning path (geometry only, computed once)
+      const path = document.getElementById("s8-path");
+      const L = path.getTotalLength();
+      const at = (f) => path.getPointAtLength(L * f);
+      const fr = [0.2, 0.45, 0.7, 1.0];
+      const pts = fr.map(at);
+      pts.forEach((p, i) => {
+        const n = document.getElementById("s8-n" + i);
+        n.style.left = (p.x - 18) + "px"; n.style.top = (p.y - 18) + "px";
+        const lab = document.getElementById("s8-l" + i);
+        const left = Math.max(192, Math.min(1728 - 420, p.x - 210));
+        lab.style.left = left + "px";
+        if (i === 2) {
+          // below its milestone, where the path leaves room
+          lab.style.top = (p.y + 36) + "px";
+        } else {
+          // bottom edge anchored above its milestone
+          lab.style.top = "auto";
+          lab.style.bottom = (1080 - p.y + (i === 3 ? 92 : 40)) + "px";
+        }
+      });
+      const bw = document.getElementById("s8-barwrap");
+      bw.style.left = Math.max(192, Math.min(1728 - 300, pts[3].x - 150)) + "px"; // under its label
+      bw.style.top = (pts[3].y - 62) + "px";
+      const star = document.getElementById("s8-starpos");
+      const p0 = at(0);
+      const pos = { f: 0 };
+      const place = () => { const p = at(pos.f); star.style.transform = `translate(${p.x - 28}px, ${p.y - 28}px)`; };
+      place();
+
+      const tl = gsap.timeline({ paused: true });
+      const wIn = (sel, at2, st = 0.07) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "power4.out", stagger: st }, at2);
+
+      wIn("#s8-kick .w", 0.3);
+      wIn("#s8-title .w", 0.45, 0.1);
+      tl.fromTo("#s8-rule", { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 1, duration: 0.5, ease: "expo.out" }, 0.7);
+      // the path is laid out, milestones appear
+      tl.fromTo("#s8-svg", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 1.2, ease: "power2.inOut" }, 0.8);
+      tl.fromTo(".s8-node", { scale: 0 }, { scale: 1, duration: 0.4, ease: "expo.out", stagger: 0.15 }, 1.2);
+      tl.fromTo(".s8-fillnode", { scale: 0 }, { scale: 0, duration: 0.01 }, 0);
+      tl.fromTo("#s8-star", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 1.8);
+      tl.fromTo("#s8-barwrap", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
+      tl.fromTo("#s8-bar", { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 0, duration: 0.01 }, 0);
+      // the learner (the star) moves from milestone to milestone
+      const legs = [[2.0, 3.0], [4.2, 5.2], [6.4, 7.4], [8.4, 9.4]];
+      legs.forEach((lg, i) => {
+        tl.to(pos, { f: fr[i], duration: lg[1] - lg[0], ease: "power2.inOut", onUpdate: place }, lg[0]);
+        tl.to(`#s8-n${i} .s8-fillnode`, { scale: 1, duration: 0.35, ease: "back.out(1.6)" }, lg[1]);
+        wIn(`#s8-l${i} .w`, lg[1] + 0.1);
+      });
+      tl.to("#s8-barwrap", { opacity: 1, duration: 0.2 }, 9.5);
+      tl.to("#s8-bar", { scaleX: 1, duration: 0.9, ease: "power2.inOut" }, 9.6);
+      // colour flood to white, the star carries on
+      tl.to(["#s8-kick", "#s8-title", "#s8-rule", "#s8-svg", ".s8-node", ".s8-lab", "#s8-barwrap"], { opacity: 0, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, 10.7);
+      tl.to("#s8-bg", { backgroundColor: "#FFFFFF", duration: 0.45, ease: "power2.inOut" }, 10.85);
+      const end = { x: 960 - 28, y: 300 - 28 };
+      const pe = at(1);
+      tl.fromTo("#s8-star", { x: 0, y: 0, scale: 1 }, { x: end.x - (pe.x - 28), y: end.y - (pe.y - 28), scale: 1.4, duration: 0.6, ease: "power2.inOut" }, 10.8);
+      window.__timelines["education"] = tl;
+    })();
+  </script>
+</template>

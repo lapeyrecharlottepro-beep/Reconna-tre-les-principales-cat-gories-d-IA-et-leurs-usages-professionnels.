@@ -1,0 +1,84 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(110% 100% at 60% 50%, #0a3366 0%, #05254e 60%, #031a38 100%); font-family: var(--font); }
+    #s6-svg { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #s6-kick { position: absolute; left: 190px; top: 170px; font-weight: 500; font-size: 40px; color: #c9d3e0; }
+    .s6-sl { position: absolute; left: 190px; font-weight: 600; font-size: 40px; }
+    .s6-lab { position: absolute; left: 190px; top: 800px; width: 900px; font-weight: 700; font-size: 56px; color: var(--white); letter-spacing: -0.005em; }
+    .acc-gold { color: var(--gold-light); }
+    .w { display: inline-block; }
+    .s6-dot { position: absolute; width: 26px; height: 26px; border-radius: 50%; background: var(--gold); }
+    #s6-star { position: absolute; left: 1685px; top: 205px; width: 70px; height: 70px; }
+    #s6-star svg { width: 100%; height: 100%; display: block; }
+  </style>
+  <div id="root" data-composition-id="leviers" data-width="1920" data-height="1080">
+    <div id="s6-kick" class="split">Nous mobilisons</div>
+    <div id="s6-sl1" class="s6-sl split" style="top:310px;color:#9db3cf">le conseil,</div>
+    <div id="s6-sl2" class="s6-sl split" style="top:480px;color:#e0707f">la formation</div>
+    <div id="s6-sl3" class="s6-sl split" style="top:650px;color:#f4d58a">et les technologies</div>
+    <svg id="s6-svg" viewBox="0 0 1920 1080">
+      <path id="s6-p1" d="M190 380 C520 380 640 600 960 600" pathLength="100" fill="none" stroke="#9DB3CF" stroke-width="8" stroke-linecap="round" stroke-dasharray="100 120" stroke-dashoffset="110"/>
+      <path id="s6-p2" d="M190 550 C520 550 640 600 960 600" pathLength="100" fill="none" stroke="#D24A5A" stroke-width="8" stroke-linecap="round" stroke-dasharray="100 120" stroke-dashoffset="110"/>
+      <path id="s6-p3" d="M190 720 C520 720 640 600 960 600" pathLength="100" fill="none" stroke="#D6A13B" stroke-width="8" stroke-linecap="round" stroke-dasharray="100 120" stroke-dashoffset="110"/>
+      <path id="s6-stairs" d="M960 600 L1160 600 L1160 480 L1360 480 L1360 360 L1560 360 L1560 240 L1720 240" pathLength="100" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="100 120" stroke-dashoffset="110"/>
+    </svg>
+    <div id="s6-d1" class="s6-dot" style="left:1147px;top:467px"></div>
+    <div id="s6-d2" class="s6-dot" style="left:1347px;top:347px"></div>
+    <div id="s6-d3" class="s6-dot" style="left:1547px;top:227px"></div>
+    <div id="s6-star"><svg viewBox="0 0 100 100"><defs><linearGradient id="s6-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B88626"/><stop offset=".5" stop-color="#F4D58A"/><stop offset="1" stop-color="#D6A13B"/></linearGradient></defs><path d="M50 0 C53 38 62 47 100 50 C62 53 53 62 50 100 C47 62 38 53 0 50 C38 47 47 38 50 0 Z" fill="url(#s6-g)"/></svg></div>
+    <div id="s6-la" class="s6-lab split">Faire progresser les organisations</div>
+    <div id="s6-lb" class="s6-lab split">Valoriser leurs savoirs</div>
+    <div id="s6-lc" class="s6-lab split">Une performance <span class="acc-gold">durable</span></div>
+  </div>
+  <script>
+    (function () {
+      function split(scope) {
+        scope.querySelectorAll(".split").forEach((el) => {
+          const out = [];
+          Array.from(el.childNodes).forEach((n) => {
+            if (n.nodeType === 3) {
+              n.textContent.split(/(\s+)/).forEach((p) => {
+                if (!p) return;
+                if (/^\s+$/.test(p)) out.push(document.createTextNode(" "));
+                else { const s = document.createElement("span"); s.className = "w"; s.textContent = p; out.push(s); }
+              });
+            } else { n.classList.add("w"); out.push(n); }
+          });
+          el.replaceChildren(...out);
+        });
+      }
+      split(document.querySelector('[data-composition-id="leviers"]'));
+
+      const tl = gsap.timeline({ paused: true });
+      const wIn = (sel, at, st = 0.08) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "power4.out", stagger: st }, at);
+      const wOut = (sel, at) => tl.to(sel, { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power2.in", stagger: 0.01 }, at);
+
+      // three strands, three expertises, braided into one line
+      wIn("#s6-kick .w", 0.2);
+      ["#s6-p1", "#s6-p2", "#s6-p3"].forEach((p, i) =>
+        tl.fromTo(p, { strokeDashoffset: 110 }, { strokeDashoffset: 0, duration: 1.6, ease: "power2.inOut" }, 0.5 + i * 0.2));
+      wIn("#s6-sl1 .w", 0.55);
+      wIn("#s6-sl2 .w", 0.8);
+      wIn("#s6-sl3 .w", 1.05);
+      wOut(["#s6-kick .w", "#s6-sl1 .w", "#s6-sl2 .w", "#s6-sl3 .w"], 3.2);
+
+      // the merged line climbs, one step per result
+      tl.fromTo(".s6-dot", { scale: 0 }, { scale: 0, duration: 0.01 }, 0);
+      tl.fromTo("#s6-star", { scale: 0, rotation: -90 }, { scale: 0, rotation: -90, duration: 0.01 }, 0);
+      tl.fromTo("#s6-stairs", { strokeDashoffset: 110 }, { strokeDashoffset: 71.4, duration: 0.9, ease: "power2.inOut" }, 3.4);
+      tl.to("#s6-d1", { scale: 1, duration: 0.4, ease: "back.out(1.6)" }, 4.3);
+      wIn("#s6-la .w", 3.6);
+      wOut("#s6-la .w", 5.3);
+      tl.to("#s6-stairs", { strokeDashoffset: 42.9, duration: 0.9, ease: "power2.inOut" }, 5.4);
+      tl.to("#s6-d2", { scale: 1, duration: 0.4, ease: "back.out(1.6)" }, 6.3);
+      wIn("#s6-lb .w", 5.55);
+      wOut("#s6-lb .w", 7.3);
+      tl.to("#s6-stairs", { strokeDashoffset: 14.3, duration: 0.9, ease: "power2.inOut" }, 7.4);
+      tl.to("#s6-d3", { scale: 1, duration: 0.4, ease: "back.out(1.6)" }, 8.3);
+      tl.to("#s6-stairs", { strokeDashoffset: 0, duration: 0.4, ease: "power2.out" }, 8.3);
+      tl.to("#s6-star", { scale: 1, rotation: 0, duration: 0.7, ease: "expo.out" }, 8.65);
+      wIn("#s6-lc .w", 7.55, 0.12);
+      window.__timelines["leviers"] = tl;
+    })();
+  </script>
+</template>

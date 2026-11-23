@@ -1,0 +1,121 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; background: var(--white); font-family: var(--font); }
+    #s9-stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #s9-ground { position: absolute; left: 560px; top: 780px; width: 800px; height: 4px; background: var(--grey-light); }
+    .s9-fig { position: absolute; left: 885px; top: 500px; width: 150px; height: 280px; }
+    .s9-fig .h { position: absolute; left: 40px; top: 0; width: 70px; height: 70px; border-radius: 50%; }
+    .s9-fig .b { position: absolute; left: 0; top: 80px; width: 150px; height: 200px; border-radius: 75px 75px 16px 16px; }
+    #s9-shadow .h, #s9-shadow .b { background: rgba(5, 37, 78, 0.1); }
+    #s9-person .h, #s9-person .b { background: var(--navy); }
+    #s9-t1 { position: absolute; left: 190px; top: 190px; width: 760px; color: var(--navy); }
+    #s9-t1 .a { font-weight: 600; font-size: 52px; line-height: 1.2; }
+    #s9-t1 .b { font-weight: 700; font-size: 76px; line-height: 1.15; letter-spacing: -0.01em; }
+    .s9-p { position: absolute; left: 190px; width: 640px; color: var(--navy); font-weight: 500; font-size: 42px; line-height: 1.2; }
+    .s9-p .v { font-weight: 700; }
+    .acc-red { color: var(--red); }
+    .w { display: inline-block; }
+    #s9-guide { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #s9-star { position: absolute; left: 921px; top: 261px; width: 78px; height: 78px; z-index: 5; }
+    #s9-star svg { width: 100%; height: 100%; display: block; }
+    .s9-door { position: absolute; top: 0; width: 960px; height: 1080px; background: var(--navy); z-index: 6; }
+    #s9-dl { left: 0; }
+    #s9-dr { left: 960px; }
+    #s9-dl i, #s9-dr i { position: absolute; top: 0; width: 6px; height: 1080px; background: linear-gradient(180deg, #b88626, #f4d58a, #d6a13b); }
+    #s9-dl i { right: 0; }
+    #s9-dr i { left: 0; }
+    #s9-persp { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 4; }
+    #s9-sky { position: absolute; left: 0; top: 0; width: 1920px; height: 540px; background: linear-gradient(180deg, #8e1628 0%, #b71932 70%, #d24a5a 100%); }
+    #s9-floor { position: absolute; left: 0; top: 540px; width: 1920px; height: 540px; background: var(--white); }
+    #s9-grid { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #s9-pt { position: absolute; left: 0; top: 290px; width: 1920px; text-align: center; color: var(--white); font-weight: 700; font-size: 80px; letter-spacing: -0.01em; }
+  </style>
+  <div id="root" data-composition-id="technologie" data-width="1920" data-height="1080">
+    <div id="s9-stage">
+      <div id="s9-shadow" class="s9-fig"><div class="h"></div><div class="b"></div></div>
+      <div id="s9-ground"></div>
+      <div id="s9-person" class="s9-fig"><div class="h"></div><div class="b"></div></div>
+      <svg id="s9-guide" viewBox="0 0 1920 1080"><path id="s9-gp" d="M1060 700 C1250 700 1400 640 1640 600" pathLength="100" fill="none" stroke="#D6A13B" stroke-width="6" stroke-linecap="round" stroke-dasharray="100 120" stroke-dashoffset="110"/></svg>
+      <div id="s9-t1" data-layout-allow-overlap><div class="a split">Une technologie qui amplifie</div><div class="b split">le potentiel <span class="acc-red">humain</span></div></div>
+      <div id="s9-p1" class="s9-p split" style="top:300px">Une intelligence artificielle qui <span class="v">assiste,</span></div>
+      <div id="s9-p2" class="s9-p split" style="top:450px">une expertise qui <span class="v">guide,</span></div>
+      <div id="s9-p3" class="s9-p split" style="top:550px">une innovation qui <span class="v">ouvre</span></div>
+    </div>
+    <div id="s9-persp">
+      <div id="s9-sky"></div>
+      <div id="s9-floor"></div>
+      <svg id="s9-grid" viewBox="0 0 1920 1080"></svg>
+      <div id="s9-pt" class="split">de nouvelles perspectives</div>
+    </div>
+    <div id="s9-dl" class="s9-door"><i></i></div>
+    <div id="s9-dr" class="s9-door"><i></i></div>
+    <div id="s9-star"><svg viewBox="0 0 100 100"><defs><linearGradient id="s9-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B88626"/><stop offset=".5" stop-color="#F4D58A"/><stop offset="1" stop-color="#D6A13B"/></linearGradient></defs><path d="M50 0 C53 38 62 47 100 50 C62 53 53 62 50 100 C47 62 38 53 0 50 C38 47 47 38 50 0 Z" fill="url(#s9-g)"/></svg></div>
+  </div>
+  <script>
+    (function () {
+      function split(scope) {
+        scope.querySelectorAll(".split").forEach((el) => {
+          const out = [];
+          Array.from(el.childNodes).forEach((n) => {
+            if (n.nodeType === 3) {
+              n.textContent.split(/(\s+)/).forEach((p) => {
+                if (!p) return;
+                if (/^\s+$/.test(p)) out.push(document.createTextNode(" "));
+                else { const s = document.createElement("span"); s.className = "w"; s.textContent = p; out.push(s); }
+              });
+            } else { n.classList.add("w"); out.push(n); }
+          });
+          el.replaceChildren(...out);
+        });
+      }
+      split(document.querySelector('[data-composition-id="technologie"]'));
+
+      // perspective floor: gold lines converging on the horizon's vanishing point
+      let g = "";
+      for (let k = -8; k <= 8; k++) g += `<line x1="960" y1="540" x2="${960 + k * 300}" y2="1080" stroke="#D6A13B" stroke-width="${k === 0 ? 4 : 3}"/>`;
+      [560, 600, 660, 760, 920].forEach((y) => (g += `<line x1="0" y1="${y}" x2="1920" y2="${y}" stroke="#E8E8E8" stroke-width="3"/>`));
+      document.getElementById("s9-grid").innerHTML = g;
+
+      const tl = gsap.timeline({ paused: true });
+      const wIn = (sel, at, st = 0.07) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "power4.out", stagger: st }, at);
+      const wOut = (sel, at) => tl.to(sel, { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power2.in", stagger: 0.01 }, at);
+
+      tl.fromTo("#s9-persp", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
+      // the star becomes the light; a person, and the potential they project
+      tl.fromTo("#s9-star", { x: 0, y: 0, scale: 1 }, { x: 400, y: 20, scale: 0.8, duration: 0.8, ease: "power2.inOut" }, 0.1);
+      tl.fromTo("#s9-ground", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "expo.out" }, 0.2);
+      tl.fromTo("#s9-person", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "expo.out" }, 0.3);
+      tl.fromTo("#s9-shadow", { opacity: 0, scale: 1, transformOrigin: "75px 280px" }, { opacity: 1, duration: 0.3 }, 0.6);
+      wIn("#s9-t1 .a .w", 0.4);
+      wIn("#s9-t1 .b .w", 1.2, 0.12);
+      tl.to("#s9-shadow", { scale: 2.6, duration: 1.6, ease: "power2.inOut" }, 1.1);
+      wOut("#s9-t1 .w", 3.2);
+
+      // AI that assists: the star comes to the person's side
+      wIn("#s9-p1 .w", 3.6, 0.06);
+      tl.to("#s9-star", { x: 160, y: 270, scale: 0.55, duration: 0.8, ease: "power2.inOut" }, 3.7);
+      // expertise that guides: the star leads the way
+      wIn("#s9-p2 .w", 5.0);
+      tl.fromTo("#s9-gp", { strokeDashoffset: 110 }, { strokeDashoffset: 0, duration: 1.0, ease: "power2.inOut" }, 5.1);
+      tl.to("#s9-star", { x: 680, y: 300, duration: 1.0, ease: "power2.inOut" }, 5.2);
+      // innovation that opens
+      wIn("#s9-p3 .w", 6.4);
+      wOut(["#s9-p1 .w", "#s9-p2 .w", "#s9-p3 .w"], 7.55);
+      tl.to("#s9-star", { x: 0, y: 240, scale: 0.7, duration: 0.6, ease: "power2.inOut" }, 7.5);
+      // doors close on the old frame…
+      tl.fromTo("#s9-dl", { x: -980 }, { x: 0, duration: 0.55, ease: "power3.inOut" }, 7.9);
+      tl.fromTo("#s9-dr", { x: 980 }, { x: 0, duration: 0.55, ease: "power3.inOut" }, 7.9);
+      tl.set("#s9-stage", { opacity: 0 }, 8.5);
+      tl.set("#s9-persp", { opacity: 1 }, 8.5);
+      // … and open onto a new perspective
+      tl.to("#s9-dl", { x: -980, duration: 0.9, ease: "power3.inOut" }, 8.9);
+      tl.to("#s9-dr", { x: 980, duration: 0.9, ease: "power3.inOut" }, 8.9);
+      tl.to("#s9-star", { opacity: 0, scale: 0.2, duration: 0.4, ease: "power2.in" }, 9.0);
+      wIn("#s9-pt .w", 9.45, 0.12);
+      wOut("#s9-pt .w", 10.65);
+      // travel to the horizon
+      tl.fromTo("#s9-persp", { scale: 1, transformOrigin: "960px 500px" }, { scale: 7, duration: 0.7, ease: "power3.in" }, 10.8);
+      window.__timelines["technologie"] = tl;
+    })();
+  </script>
+</template>

@@ -1,0 +1,110 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font); }
+    #s7-all { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; background: var(--white); }
+    #s7-kick { position: absolute; left: 190px; top: 150px; font-weight: 500; font-size: 40px; color: var(--grey-dark); }
+    #s7-title { position: absolute; left: 190px; top: 198px; font-weight: 700; font-size: 80px; color: var(--navy); letter-spacing: -0.01em; }
+    #s7-rule { position: absolute; left: 190px; top: 310px; width: 100px; height: 4px; background: linear-gradient(90deg, #b88626, #f4d58a, #d6a13b); }
+    .s7-card { position: absolute; top: 470px; width: 200px; height: 130px; border-radius: 14px; background: var(--navy); overflow: hidden; }
+    .s7-card .bar { position: absolute; left: 0; top: 0; width: 200px; height: 18px; background: var(--navy-mid); }
+    .s7-ui { position: absolute; inset: 0; }
+    .s7-ui i { position: absolute; left: 20px; height: 10px; border-radius: 5px; background: rgba(255,255,255,.85); }
+    .s7-ui b { position: absolute; right: 20px; top: 34px; width: 22px; height: 22px; border-radius: 50%; background: var(--gold); }
+    .s7-track { position: absolute; left: 20px; bottom: 14px; width: 160px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.2); overflow: hidden; }
+    .s7-fill { position: absolute; left: 0; top: 0; width: 160px; height: 8px; background: var(--gold); }
+    .s7-con { position: absolute; top: 533px; width: 130px; height: 4px; background: var(--gold); }
+    .s7-lab { position: absolute; left: 190px; top: 720px; width: 1100px; color: var(--navy); }
+    .s7-lab .a { font-weight: 700; font-size: 56px; letter-spacing: -0.005em; }
+    .s7-lab .b { font-weight: 500; font-size: 38px; color: var(--grey-dark); margin-top: 6px; }
+    .acc-red { color: var(--red); }
+    .w { display: inline-block; }
+    #s7-token { position: absolute; left: 266px; top: 511px; width: 48px; height: 48px; z-index: 3; }
+    #s7-token svg { width: 100%; height: 100%; display: block; }
+  </style>
+  <div id="root" data-composition-id="entreprises" data-width="1920" data-height="1080">
+    <div id="s7-all">
+      <div id="s7-kick" class="split">Pour les</div>
+      <div id="s7-title" class="split">entreprises privées</div>
+      <div id="s7-rule"></div>
+
+      <div id="s7-c0" class="s7-card" style="left:190px"><div class="bar"></div><div class="s7-ui"><i style="top:40px;width:110px"></i><i style="top:62px;width:80px"></i><i style="top:84px;width:130px"></i><b></b></div><div class="s7-track"><div class="s7-fill"></div></div></div>
+      <div id="s7-c1" class="s7-card" style="left:520px"><div class="bar"></div><div class="s7-ui"><i style="top:40px;width:90px"></i><i style="top:62px;width:130px"></i><i style="top:84px;width:70px"></i><b></b></div><div class="s7-track"><div class="s7-fill"></div></div></div>
+      <div id="s7-c2" class="s7-card" style="left:850px"><div class="bar"></div><div class="s7-ui"><i style="top:40px;width:120px"></i><i style="top:62px;width:100px"></i><i style="top:84px;width:60px"></i><b></b></div><div class="s7-track"><div class="s7-fill"></div></div></div>
+      <div id="s7-c3" class="s7-card" style="left:1180px"><div class="bar"></div><div class="s7-ui"><i style="top:40px;width:70px"></i><i style="top:62px;width:120px"></i><i style="top:84px;width:100px"></i><b></b></div><div class="s7-track"><div class="s7-fill"></div></div></div>
+      <div id="s7-c4" class="s7-card" style="left:1510px"><div class="bar"></div><div class="s7-ui"><i style="top:40px;width:130px"></i><i style="top:62px;width:90px"></i><i style="top:84px;width:110px"></i><b></b></div><div class="s7-track"><div class="s7-fill"></div></div></div>
+      <div class="s7-con" style="left:390px"></div>
+      <div class="s7-con" style="left:720px"></div>
+      <div class="s7-con" style="left:1050px"></div>
+      <div class="s7-con" style="left:1380px"></div>
+      <div id="s7-token"><svg viewBox="0 0 100 100"><defs><linearGradient id="s7-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B88626"/><stop offset=".5" stop-color="#F4D58A"/><stop offset="1" stop-color="#D6A13B"/></linearGradient></defs><path d="M50 0 C53 38 62 47 100 50 C62 53 53 62 50 100 C47 62 38 53 0 50 C38 47 47 38 50 0 Z" fill="url(#s7-g)"/></svg></div>
+
+      <div id="s7-la" class="s7-lab"><div class="a split">Structurer et digitaliser</div><div class="b split">les processus</div></div>
+      <div id="s7-lb" class="s7-lab"><div class="a split">Transmettre les <span class="acc-red">savoir-faire</span></div></div>
+      <div id="s7-lc" class="s7-lab"><div class="a split">Développer les compétences</div></div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      function split(scope) {
+        scope.querySelectorAll(".split").forEach((el) => {
+          const out = [];
+          Array.from(el.childNodes).forEach((n) => {
+            if (n.nodeType === 3) {
+              n.textContent.split(/(\s+)/).forEach((p) => {
+                if (!p) return;
+                if (/^\s+$/.test(p)) out.push(document.createTextNode(" "));
+                else { const s = document.createElement("span"); s.className = "w"; s.textContent = p; out.push(s); }
+              });
+            } else { n.classList.add("w"); out.push(n); }
+          });
+          el.replaceChildren(...out);
+        });
+      }
+      split(document.getElementById("s7-all"));
+
+      const tl = gsap.timeline({ paused: true });
+      const wIn = (sel, at, st = 0.08) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "power4.out", stagger: st }, at);
+      const wOut = (sel, at) => tl.to(sel, { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power2.in", stagger: 0.01 }, at);
+
+      // iris opens from the star at the top of the staircase
+      tl.fromTo("#s7-all", { clipPath: "circle(0px at 1720px 240px)" }, { clipPath: "circle(2300px at 1720px 240px)", duration: 0.6, ease: "power2.inOut" }, 0);
+      wIn("#s7-kick .w", 0.5);
+      wIn("#s7-title .w", 0.65, 0.1);
+      tl.fromTo("#s7-rule", { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 1, duration: 0.5, ease: "expo.out" }, 0.9);
+
+      // scattered processes fall into one flow
+      const mess = [[80, 180, -14], [20, -70, 9], [-40, 190, -6], [60, -40, 16], [-90, 150, -10]];
+      mess.forEach((m, i) => {
+        tl.fromTo(`#s7-c${i}`, { x: m[0], y: m[1], rotation: m[2], opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.45, ease: "expo.out" }, 0.75 + i * 0.08);
+        tl.to(`#s7-c${i}`, { x: 0, y: 0, rotation: 0, duration: 1.0, ease: "power3.inOut" }, 1.8 + i * 0.03);
+      });
+      tl.fromTo(".s7-con", { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 1, duration: 0.4, ease: "power2.out", stagger: 0.08 }, 2.75);
+      wIn("#s7-la .a .w", 1.9);
+      wIn("#s7-la .b .w", 2.4);
+      // … and go digital
+      tl.fromTo(".s7-ui", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out", stagger: 0.1 }, 3.4);
+      tl.fromTo(".s7-track", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
+      tl.fromTo(".s7-fill", { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 0, duration: 0.01 }, 0);
+      wOut("#s7-la .w", 4.7);
+
+      // know-how travels along the flow
+      wIn("#s7-lb .w", 5.0);
+      tl.fromTo("#s7-token", { x: 0, scale: 0 }, { scale: 1, duration: 0.35, ease: "expo.out" }, 5.0);
+      tl.to("#s7-token", { x: 1320, duration: 1.8, ease: "power1.inOut" }, 5.2);
+      tl.to("#s7-token", { scale: 0, duration: 0.25, ease: "power2.in" }, 7.0);
+      wOut("#s7-lb .w", 6.9);
+
+      // skills grow in every tool
+      wIn("#s7-lc .w", 7.1);
+      tl.to(".s7-track", { opacity: 1, duration: 0.2, stagger: 0.12 }, 7.15);
+      tl.to(".s7-fill", { scaleX: 1, duration: 0.7, ease: "power2.inOut", stagger: 0.12 }, 7.25);
+
+      // the last card becomes the next world
+      wOut("#s7-lc .w", 8.95);
+      tl.to(["#s7-kick", "#s7-title", "#s7-rule", ".s7-con", "#s7-c0", "#s7-c1", "#s7-c2", "#s7-c3"], { opacity: 0, filter: "blur(12px)", duration: 0.3, ease: "power2.in" }, 9.0);
+      tl.to("#s7-c4 .s7-ui, #s7-c4 .s7-track, #s7-c4 .bar", { opacity: 0, duration: 0.2 }, 9.0);
+      tl.to("#s7-c4", { scale: 20, duration: 0.65, ease: "power2.in" }, 9.2);
+      window.__timelines["entreprises"] = tl;
+    })();
+  </script>
+</template>

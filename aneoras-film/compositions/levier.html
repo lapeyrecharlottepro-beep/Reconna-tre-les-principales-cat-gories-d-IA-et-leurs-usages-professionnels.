@@ -1,0 +1,82 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; background: var(--white); font-family: var(--font); }
+    #s2-titles { position: absolute; left: 190px; top: 150px; width: 1500px; color: var(--navy); }
+    #s2-l1, #s2-l2 { font-weight: 600; font-size: 58px; line-height: 1.25; letter-spacing: -0.005em; }
+    .acc-red { color: var(--red); }
+    .w { display: inline-block; }
+    #s2-ground { position: absolute; left: 380px; top: 760px; width: 1160px; height: 4px; background: var(--grey-light); }
+    #s2-fulcrum { position: absolute; left: 1090px; top: 640px; width: 180px; height: 120px; background: linear-gradient(180deg, #d24a5a 0%, #b71932 45%, #8e1628 100%); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+    #s2-beam { position: absolute; left: 480px; top: 632px; width: 1000px; height: 16px; }
+    #s2-bar { position: absolute; left: 0; top: 0; width: 1000px; height: 16px; background: var(--navy); border-radius: 3px; }
+    #s2-block { position: absolute; left: 760px; top: -200px; width: 200px; height: 200px; background: var(--navy); }
+    #s2-block-face { position: absolute; left: 0; top: 0; width: 200px; height: 40px; background: var(--navy-mid); }
+    #s2-bstar { position: absolute; left: -5px; top: -105px; width: 90px; height: 90px; }
+    #s2-star { position: absolute; left: 900px; top: 480px; width: 120px; height: 120px; z-index: 5; }
+    #s2-flood { position: absolute; inset: 0; background: var(--red); z-index: 4; }
+    .star svg { width: 100%; height: 100%; display: block; }
+  </style>
+  <div id="root" data-composition-id="levier" data-width="1920" data-height="1080">
+    <div id="s2-titles">
+      <div id="s2-l1" class="split">Comment transformer ce potentiel</div>
+      <div id="s2-l2" class="split">en véritable <span class="acc-red">levier</span> de développement ?</div>
+    </div>
+    <div id="s2-ground"></div>
+    <div id="s2-fulcrum"></div>
+    <div id="s2-beam">
+      <div id="s2-block"><div id="s2-block-face"></div></div>
+      <div id="s2-bar"></div>
+      <div id="s2-bstar" class="star"><svg viewBox="0 0 100 100"><defs><linearGradient id="s2-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B88626"/><stop offset=".5" stop-color="#F4D58A"/><stop offset="1" stop-color="#D6A13B"/></linearGradient></defs><path d="M50 0 C53 38 62 47 100 50 C62 53 53 62 50 100 C47 62 38 53 0 50 C38 47 47 38 50 0 Z" fill="url(#s2-g1)"/></svg></div>
+    </div>
+    <div id="s2-flood"></div>
+    <div id="s2-star" class="star"><svg viewBox="0 0 100 100"><defs><linearGradient id="s2-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B88626"/><stop offset=".5" stop-color="#F4D58A"/><stop offset="1" stop-color="#D6A13B"/></linearGradient></defs><path d="M50 0 C53 38 62 47 100 50 C62 53 53 62 50 100 C47 62 38 53 0 50 C38 47 47 38 50 0 Z" fill="url(#s2-g2)"/></svg></div>
+  </div>
+  <script>
+    (function () {
+      function split(scope) {
+        scope.querySelectorAll(".split").forEach((el) => {
+          const out = [];
+          Array.from(el.childNodes).forEach((n) => {
+            if (n.nodeType === 3) {
+              n.textContent.split(/(\s+)/).forEach((p) => {
+                if (!p) return;
+                if (/^\s+$/.test(p)) out.push(document.createTextNode(" "));
+                else { const s = document.createElement("span"); s.className = "w"; s.textContent = p; out.push(s); }
+              });
+            } else { n.classList.add("w"); out.push(n); }
+          });
+          el.replaceChildren(...out);
+        });
+      }
+      split(document.getElementById("s2-titles"));
+
+      const tl = gsap.timeline({ paused: true });
+      const wIn = (sel, at, st = 0.07) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "power4.out", stagger: st }, at);
+
+      // the star arrives from the light of the window
+      tl.fromTo("#s2-star", { scale: 0, x: 0, y: 0, opacity: 1 }, { scale: 1, duration: 0.6, ease: "expo.out" }, 0.05);
+      wIn("#s2-l1 .w", 0.35);
+      // the lever is set up
+      tl.fromTo("#s2-ground", { scaleX: 0, transformOrigin: "50% 50%" }, { scaleX: 1, duration: 0.6, ease: "expo.out" }, 0.45);
+      tl.fromTo("#s2-fulcrum", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "expo.out" }, 0.55);
+      tl.fromTo("#s2-beam", { opacity: 0, rotation: 8, transformOrigin: "700px 8px", filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.45, ease: "power2.out" }, 0.65);
+      tl.fromTo("#s2-bstar", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0.65);
+      tl.fromTo("#s2-flood", { clipPath: "circle(0px at 960px 540px)" }, { clipPath: "circle(0px at 960px 540px)", duration: 0.01 }, 0);
+      // the star travels to the long arm of the lever
+      tl.to("#s2-star", { x: -424, y: -59, scale: 0.75, duration: 0.6, ease: "power2.inOut" }, 1.0);
+      tl.set("#s2-star", { opacity: 0 }, 1.6);
+      tl.set("#s2-bstar", { opacity: 1 }, 1.6);
+      // a small force lifts a large block
+      tl.to("#s2-beam", { rotation: -10, duration: 0.9, ease: "power3.out" }, 1.65);
+      wIn("#s2-l2 .w", 1.9);
+      // exit: everything clears, the star returns to centre, red floods out from it
+      tl.to("#s2-titles .w", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power2.in", stagger: 0.012 }, 4.5);
+      tl.set("#s2-bstar", { opacity: 0 }, 4.6);
+      tl.set("#s2-star", { opacity: 1, x: -442, y: 148, scale: 0.75 }, 4.6);
+      tl.to(["#s2-beam", "#s2-fulcrum", "#s2-ground"], { opacity: 0, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, 4.6);
+      tl.to("#s2-star", { x: 0, y: 0, scale: 1, duration: 0.6, ease: "power2.inOut" }, 4.65);
+      tl.to("#s2-flood", { clipPath: "circle(1150px at 960px 540px)", duration: 0.45, ease: "power2.inOut" }, 5.0);
+      window.__timelines["levier"] = tl;
+    })();
+  </script>
+</template>

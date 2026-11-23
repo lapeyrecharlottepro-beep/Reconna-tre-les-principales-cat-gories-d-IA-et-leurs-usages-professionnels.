@@ -1,0 +1,91 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; background: var(--navy-deep); font-family: var(--font); }
+    #s1-cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #s1-sky { position: absolute; inset: 0; background: radial-gradient(120% 90% at 20% 30%, #0a2f5e 0%, #031a38 70%); }
+    #s1-building { position: absolute; left: 780px; top: 0; width: 1140px; height: 1080px; background: var(--navy); }
+    #s1-edge { position: absolute; left: 780px; top: 0; width: 22px; height: 1080px; background: var(--navy-mid); }
+    .s1-win { position: absolute; width: 110px; height: 80px; background: linear-gradient(160deg, #0f3a70 0%, #072a57 60%, #06234a 100%); border: 3px solid #0d3a72; }
+    .s1-slab { position: absolute; left: 802px; width: 1118px; height: 4px; background: #08305f; }
+    #s1-target { position: absolute; left: 1420px; top: 460px; width: 110px; height: 80px; border: 3px solid #0d3a72; overflow: hidden; background: #072a57; }
+    #s1-light { position: absolute; inset: 0; background: #ffffff; }
+    #s1-star { position: absolute; left: 33px; top: 18px; width: 44px; height: 44px; }
+    #s1-star svg { width: 100%; height: 100%; display: block; }
+    #s1-titles { position: absolute; left: 190px; top: 330px; width: 600px; color: var(--white); }
+    #s1-l1 { font-weight: 600; font-size: 46px; line-height: 1.2; }
+    #s1-l2 { font-weight: 700; font-size: 92px; line-height: 1.1; letter-spacing: -0.01em; margin-top: 14px; }
+    #s1-l3 { font-weight: 400; font-size: 36px; line-height: 1.35; margin-top: 22px; color: #d8e0ea; }
+    .w { display: inline-block; }
+    .acc-gold { color: var(--gold); }
+  </style>
+  <div id="root" data-composition-id="facade" data-width="1920" data-height="1080">
+    <div id="s1-cam">
+      <div id="s1-sky"></div>
+      <div id="s1-building"></div>
+      <div id="s1-grid"></div>
+      <div id="s1-edge"></div>
+      <div id="s1-target">
+        <div id="s1-light"></div>
+        <div id="s1-star">
+          <svg viewBox="0 0 100 100"><defs><linearGradient id="s1-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B88626"/><stop offset=".5" stop-color="#F4D58A"/><stop offset="1" stop-color="#D6A13B"/></linearGradient></defs><path d="M50 0 C53 38 62 47 100 50 C62 53 53 62 50 100 C47 62 38 53 0 50 C38 47 47 38 50 0 Z" fill="url(#s1-g)"/></svg>
+        </div>
+      </div>
+    </div>
+    <div id="s1-titles" data-layout-allow-overlap>
+      <div id="s1-l1" class="split">Derrière chaque organisation,</div>
+      <div id="s1-l2" class="split">un <span class="acc-gold">potentiel</span></div>
+      <div id="s1-l3" class="split">qui ne demande qu’à être révélé.</div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const stage = document.querySelector('[data-composition-id="facade"] #s1-grid') || document.getElementById("s1-grid");
+      // façade: window grid + floor slabs (decorative, deterministic)
+      let html = "";
+      for (let j = 0; j < 10; j++) {
+        const y = -20 + j * 120;
+        html += `<div class="s1-slab" style="top:${y + 96}px"></div>`;
+        for (let i = 0; i < 8; i++) {
+          const x = 820 + i * 150;
+          if (i === 4 && j === 4) continue; // the lit window is its own element
+          html += `<div class="s1-win" style="left:${x}px;top:${y}px"></div>`;
+        }
+      }
+      stage.innerHTML = html;
+
+      function split(scope) {
+        scope.querySelectorAll(".split").forEach((el) => {
+          const out = [];
+          Array.from(el.childNodes).forEach((n) => {
+            if (n.nodeType === 3) {
+              n.textContent.split(/(\s+)/).forEach((p) => {
+                if (!p) return;
+                if (/^\s+$/.test(p)) out.push(document.createTextNode(" "));
+                else { const s = document.createElement("span"); s.className = "w"; s.textContent = p; out.push(s); }
+              });
+            } else { n.classList.add("w"); out.push(n); }
+          });
+          el.replaceChildren(...out);
+        });
+      }
+      split(document.getElementById("s1-titles"));
+
+      const tl = gsap.timeline({ paused: true });
+      const wIn = (sel, at, st = 0.07) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "power4.out", stagger: st }, at);
+
+      // slow push toward the one window
+      tl.fromTo("#s1-cam", { scale: 1, transformOrigin: "1475px 500px" }, { scale: 1.22, duration: 5.6, ease: "power1.inOut" }, 0);
+      // the window lights up, the star appears in it
+      tl.fromTo("#s1-light", { opacity: 0 }, { opacity: 1, duration: 0.9, ease: "power2.inOut" }, 0.6);
+      tl.fromTo("#s1-star", { scale: 0, rotation: -60 }, { scale: 1, rotation: 0, duration: 0.9, ease: "expo.out" }, 1.15);
+      // titles
+      wIn("#s1-l2 .w", 1.7, 0.12);
+      wIn("#s1-l3 .w", 3.0, 0.06);
+      tl.to("#s1-titles .w", { opacity: 0, filter: "blur(8px)", duration: 0.22, ease: "power2.in", stagger: 0.015 }, 5.35);
+      // zoom through the lit window: its light becomes the next world
+      tl.to("#s1-star", { opacity: 0, duration: 0.3, ease: "power2.in" }, 5.85);
+      tl.to("#s1-cam", { scale: 42, duration: 1.0, ease: "power3.in" }, 5.8);
+      window.__timelines["facade"] = tl;
+    })();
+  </script>
+</template>

@@ -1,0 +1,63 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(120% 110% at 40% 45%, #b71932 0%, #a3172e 55%, #8e1628 100%); font-family: var(--font); }
+    #s10-text { position: absolute; left: 190px; top: 290px; width: 1000px; color: var(--white); }
+    .s10-s { font-weight: 500; font-size: 44px; line-height: 1.25; }
+    .s10-b { font-weight: 700; font-size: 78px; line-height: 1.12; letter-spacing: -0.01em; }
+    #s10-l3 { margin-top: 44px; }
+    .acc-gold { color: var(--gold-light); }
+    .w { display: inline-block; }
+    #s10-arrow { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    .s10-bar { position: absolute; left: 1300px; width: 340px; height: 36px; border-radius: 3px; background: linear-gradient(90deg, #b88626 0%, #f4d58a 50%, #d6a13b 100%); }
+    #s10-white { position: absolute; inset: 0; background: var(--white); }
+  </style>
+  <div id="root" data-composition-id="agir" data-width="1920" data-height="1080">
+    <div id="s10-text">
+      <div id="s10-l1" class="s10-s split">Parce que la connaissance</div>
+      <div id="s10-l2" class="s10-b split">prend toute sa valeur</div>
+      <div id="s10-l3" class="s10-s split">lorsqu’elle devient</div>
+      <div id="s10-l4" class="s10-b split">une capacité <span class="acc-gold">d’agir.</span></div>
+    </div>
+    <div id="s10-arrow">
+      <div id="s10-b1" class="s10-bar" style="top:446px"></div>
+      <div id="s10-b2" class="s10-bar" style="top:522px"></div>
+      <div id="s10-b3" class="s10-bar" style="top:598px"></div>
+    </div>
+    <div id="s10-white"></div>
+  </div>
+  <script>
+    (function () {
+      document.querySelectorAll("#s10-text .split").forEach((el) => {
+        const out = [];
+        Array.from(el.childNodes).forEach((n) => {
+          if (n.nodeType === 3) {
+            n.textContent.split(/(\s+)/).forEach((p) => {
+              if (!p) return;
+              if (/^\s+$/.test(p)) out.push(document.createTextNode(" "));
+              else { const s = document.createElement("span"); s.className = "w"; s.textContent = p; out.push(s); }
+            });
+          } else { n.classList.add("w"); out.push(n); }
+        });
+        el.replaceChildren(...out);
+      });
+      const tl = gsap.timeline({ paused: true });
+      const wIn = (sel, at, st = 0.08) => tl.fromTo(sel, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "power4.out", stagger: st }, at);
+
+      tl.fromTo("#s10-white", { clipPath: "circle(0px at 1920px 540px)" }, { clipPath: "circle(0px at 1920px 540px)", duration: 0.01 }, 0);
+      // knowledge: the brand's three gold bars (the Ξ of ANEORAS)
+      tl.fromTo(".s10-bar", { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 1, duration: 0.6, ease: "expo.out", stagger: 0.1 }, 0.3);
+      wIn("#s10-l1 .w", 0.15);
+      wIn("#s10-l2 .w", 0.75, 0.1);
+      wIn("#s10-l3 .w", 2.0);
+      wIn("#s10-l4 .w", 2.55, 0.12);
+      // … becomes the ability to act: the bars fold into an arrow
+      tl.to("#s10-b1", { y: 76, scaleX: 0.42, rotation: 35, transformOrigin: "100% 50%", duration: 0.5, ease: "power3.inOut" }, 3.05);
+      tl.to("#s10-b3", { y: -76, scaleX: 0.42, rotation: -35, transformOrigin: "100% 50%", duration: 0.5, ease: "power3.inOut" }, 3.05);
+      // exit: the arrow leaves, the world opens to white behind it
+      tl.to("#s10-text .w", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power2.in", stagger: 0.008 }, 4.8);
+      tl.to("#s10-arrow", { x: 760, filter: "blur(10px)", duration: 0.4, ease: "power3.in" }, 4.95);
+      tl.to("#s10-white", { clipPath: "circle(2300px at 1920px 540px)", duration: 0.6, ease: "power2.inOut" }, 5.3);
+      window.__timelines["agir"] = tl;
+    })();
+  </script>
+</template>

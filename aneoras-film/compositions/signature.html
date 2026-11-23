@@ -1,0 +1,52 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; background: var(--white); font-family: var(--font); }
+    /* Vector redraw of the ANEORAS mark from the brand guide — swap for the official SVG when available */
+    #s11-mark { position: absolute; left: 785px; top: 140px; width: 350px; height: 294px; }
+    #s11-word { position: absolute; left: 0; top: 500px; width: 1920px; height: 70px; display: flex; justify-content: center; align-items: center; gap: 46px; }
+    .s11-ch { display: block; height: 66px; font-weight: 400; font-size: 92px; line-height: 66px; color: var(--navy); }
+    .s11-svg { display: block; width: 60px; height: 64px; }
+    #s11-tag { position: absolute; left: 0; top: 628px; width: 1920px; text-align: center; font-weight: 500; font-size: 30px; letter-spacing: 0.32em; color: var(--navy); }
+    .w { display: inline-block; }
+    #s11-star { position: absolute; left: 1079.7px; top: 143.4px; width: 47.4px; height: 47.4px; }
+    #s11-star svg { width: 100%; height: 100%; display: block; }
+  </style>
+  <div id="root" data-composition-id="signature" data-width="1920" data-height="1080">
+    <svg id="s11-mark" viewBox="0 0 310 260">
+      <defs>
+        <linearGradient id="s11-gold" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#B88626"/><stop offset=".55" stop-color="#F4D58A"/><stop offset="1" stop-color="#D6A13B"/></linearGradient>
+        <linearGradient id="s11-red" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D24A5A"/><stop offset=".5" stop-color="#B71932"/><stop offset="1" stop-color="#8E1628"/></linearGradient>
+      </defs>
+      <polygon id="s11-navy" points="20,248 66,248 148.5,95.6 153,104 192,90 150,8" fill="#05254E"/>
+      <polygon id="s11-redleg" points="165,128 204,114 272,248 226,248" fill="url(#s11-red)"/>
+      <path id="s11-swoosh" d="M8 258 Q120 118 262 40 Q150 104 44 258 Z" fill="url(#s11-gold)"/>
+    </svg>
+    <div id="s11-star"><svg viewBox="0 0 100 100"><defs><linearGradient id="s11-sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B88626"/><stop offset=".5" stop-color="#F4D58A"/><stop offset="1" stop-color="#D6A13B"/></linearGradient></defs><path d="M50 0 C53 38 62 47 100 50 C62 53 53 62 50 100 C47 62 38 53 0 50 C38 47 47 38 50 0 Z" fill="url(#s11-sg)"/></svg></div>
+    <div id="s11-word">
+      <svg class="s11-ch s11-svg" viewBox="0 0 60 64"><polyline points="4,64 30,3 56,64" fill="none" stroke="#05254E" stroke-width="7.5" stroke-linejoin="miter"/></svg>
+      <span class="s11-ch">N</span>
+      <svg class="s11-ch s11-svg" viewBox="0 0 60 64" style="width:52px"><rect x="0" y="0" width="52" height="8" fill="#D6A13B"/><rect x="0" y="28" width="52" height="8" fill="#D6A13B"/><rect x="0" y="56" width="52" height="8" fill="#D6A13B"/></svg>
+      <span class="s11-ch">O</span>
+      <span class="s11-ch">R</span>
+      <svg class="s11-ch s11-svg" viewBox="0 0 60 64"><polyline points="4,64 30,3 56,64" fill="none" stroke="#05254E" stroke-width="7.5" stroke-linejoin="miter"/></svg>
+      <span class="s11-ch">S</span>
+    </div>
+    <div id="s11-tag">VOTRE POTENTIEL. NOTRE STRATÉGIE.</div>
+  </div>
+  <script>
+    (function () {
+      const tag = document.getElementById("s11-tag");
+      tag.innerHTML = tag.textContent.trim().split(/\s+/).map((w) => `<span class="w">${w}</span>`).join(" ");
+      const tl = gsap.timeline({ paused: true });
+      // the mark is built: navy leg, red leg, then the gold curve sweeps up to its star
+      tl.fromTo("#s11-navy", { clipPath: "inset(100% 0 0 0)" }, { clipPath: "inset(0% 0 0 0)", duration: 0.6, ease: "power3.out" }, 0.1);
+      tl.fromTo("#s11-redleg", { clipPath: "inset(0 0 100% 0)" }, { clipPath: "inset(0 0 0% 0)", duration: 0.55, ease: "power3.out" }, 0.35);
+      tl.fromTo("#s11-swoosh", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.65, ease: "power2.inOut" }, 0.55);
+      tl.fromTo("#s11-star", { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.7, ease: "expo.out" }, 1.12);
+      // the name, letter by letter
+      tl.fromTo(".s11-ch", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out", stagger: 0.09 }, 1.6);
+      tl.fromTo("#s11-tag .w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out", stagger: 0.12 }, 2.5);
+      window.__timelines["signature"] = tl;
+    })();
+  </script>
+</template>

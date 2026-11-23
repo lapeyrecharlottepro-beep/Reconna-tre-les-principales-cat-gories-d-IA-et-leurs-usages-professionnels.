@@ -1,0 +1,92 @@
+<!doctype html>
+<html
+  lang="fr"
+  data-composition-variables='[
+    {"id":"navy","type":"color","label":"Bleu marine","default":"#05254E"},
+    {"id":"red","type":"color","label":"Rouge","default":"#B71932"},
+    {"id":"gold","type":"color","label":"Or","default":"#D6A13B"},
+    {"id":"subtitles","type":"boolean","label":"Sous-titres du script","default":true}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/vendor/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Montserrat"; src: url("assets/fonts/montserrat-300.woff2") format("woff2"); font-weight: 300; font-style: normal; }
+      @font-face { font-family: "Montserrat"; src: url("assets/fonts/montserrat-400.woff2") format("woff2"); font-weight: 400; font-style: normal; }
+      @font-face { font-family: "Montserrat"; src: url("assets/fonts/montserrat-500.woff2") format("woff2"); font-weight: 500; font-style: normal; }
+      @font-face { font-family: "Montserrat"; src: url("assets/fonts/montserrat-600.woff2") format("woff2"); font-weight: 600; font-style: normal; }
+      @font-face { font-family: "Montserrat"; src: url("assets/fonts/montserrat-700.woff2") format("woff2"); font-weight: 700; font-style: normal; }
+      :root {
+        --navy: #05254e;
+        --navy-deep: #031a38;
+        --navy-mid: #0b3366;
+        --red: #b71932;
+        --red-deep: #8e1628;
+        --gold: #d6a13b;
+        --gold-light: #f4d58a;
+        --gold-dark: #b88626;
+        --white: #ffffff;
+        --grey-light: #e8e8e8;
+        --grey-dark: #2b2b2b;
+        --font: "Montserrat", sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--white); font-family: var(--font); }
+      #main-bg { position: absolute; inset: 0; background: var(--white); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="94" data-width="1920" data-height="1080">
+      <div id="main-bg"></div>
+
+      <!-- Scenes: one lane, back to back (S7 overlaps S6 by 0.4 s for its iris opening) -->
+      <div id="facade" data-composition-id="facade" data-composition-src="compositions/facade.html" data-start="0" data-duration="7" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:1"></div>
+      <div id="levier" data-composition-id="levier" data-composition-src="compositions/levier.html" data-start="7" data-duration="5.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:2"></div>
+      <div id="ambition" data-composition-id="ambition" data-composition-src="compositions/ambition.html" data-start="12.5" data-duration="3" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:3"></div>
+      <div id="cotes" data-composition-id="cotes" data-composition-src="compositions/cotes.html" data-start="15.5" data-duration="11" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:4"></div>
+      <div id="route" data-composition-id="route" data-composition-src="compositions/route.html" data-start="26.5" data-duration="11" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:5"></div>
+      <div id="leviers" data-composition-id="leviers" data-composition-src="compositions/leviers.html" data-start="37.5" data-duration="11.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:6"></div>
+      <div id="entreprises" data-composition-id="entreprises" data-composition-src="compositions/entreprises.html" data-start="48.6" data-duration="9.9" data-track-index="2" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:7"></div>
+      <div id="education" data-composition-id="education" data-composition-src="compositions/education.html" data-start="58.5" data-duration="11.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:8"></div>
+      <div id="technologie" data-composition-id="technologie" data-composition-src="compositions/technologie.html" data-start="70" data-duration="11.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:9"></div>
+      <div id="agir" data-composition-id="agir" data-composition-src="compositions/agir.html" data-start="81.5" data-duration="6" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:10"></div>
+      <div id="signature" data-composition-id="signature" data-composition-src="compositions/signature.html" data-start="87.5" data-duration="6.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:11"></div>
+
+      <!-- Script as subtitles (stand-in for the voiceover, toggle with the "subtitles" variable) -->
+      <div id="captions" data-composition-id="captions" data-composition-src="compositions/captions.html" data-start="0" data-duration="94" data-track-index="3" data-track-kind="captions" data-width="1920" data-height="1080" style="z-index:20"></div>
+
+      <!-- Sound effects (Pixabay licence, see assets/sfx/CREDITS.md) -->
+      <audio id="sfx-star-1" class="clip" src="assets/sfx/sparkle.mp3" data-start="1.1" data-duration="1.8" data-track-index="4" data-volume="0.22"></audio>
+      <audio id="sfx-zoom-1" class="clip" src="assets/sfx/whoosh-cinematic.mp3" data-start="5.2" data-duration="2.6" data-media-start="1" data-track-index="4" data-volume="0.4" data-fade-out="0.8"></audio>
+      <audio id="sfx-lever" class="clip" src="assets/sfx/impact-bass-1.mp3" data-start="8.62" data-duration="1.2" data-track-index="5" data-volume="0.22" data-fade-out="0.6"></audio>
+      <audio id="sfx-flood-1" class="clip" src="assets/sfx/whoosh-short.mp3" data-start="11.95" data-duration="0.57" data-track-index="4" data-volume="0.4"></audio>
+      <audio id="sfx-split" class="clip" src="assets/sfx/whoosh.mp3" data-start="15.15" data-duration="0.57" data-track-index="4" data-volume="0.4"></audio>
+      <audio id="sfx-whip-1" class="clip" src="assets/sfx/whoosh-short.mp3" data-start="26.05" data-duration="0.57" data-track-index="4" data-volume="0.4"></audio>
+      <audio id="sfx-travel-1" class="clip" src="assets/sfx/whoosh.mp3" data-start="28.75" data-duration="0.57" data-track-index="4" data-volume="0.25"></audio>
+      <audio id="sfx-travel-2" class="clip" src="assets/sfx/whoosh-short.mp3" data-start="33.75" data-duration="0.57" data-track-index="4" data-volume="0.25"></audio>
+      <audio id="sfx-wipe-1" class="clip" src="assets/sfx/whoosh.mp3" data-start="37.1" data-duration="0.57" data-track-index="4" data-volume="0.4"></audio>
+      <audio id="sfx-step-1" class="clip" src="assets/sfx/pop.mp3" data-start="41.8" data-duration="0.7" data-track-index="4" data-volume="0.6"></audio>
+      <audio id="sfx-step-2" class="clip" src="assets/sfx/pop.mp3" data-start="43.8" data-duration="0.7" data-track-index="4" data-volume="0.6"></audio>
+      <audio id="sfx-star-2" class="clip" src="assets/sfx/sparkle.mp3" data-start="46.15" data-duration="1.8" data-track-index="4" data-volume="0.18"></audio>
+      <audio id="sfx-iris" class="clip" src="assets/sfx/whoosh-short.mp3" data-start="48.6" data-duration="0.57" data-track-index="4" data-volume="0.35"></audio>
+      <audio id="sfx-align" class="clip" src="assets/sfx/click-soft.mp3" data-start="51.4" data-duration="0.37" data-track-index="4" data-volume="0.9"></audio>
+      <audio id="sfx-zoom-2" class="clip" src="assets/sfx/whoosh-cinematic.mp3" data-start="57.3" data-duration="2.2" data-media-start="1.4" data-track-index="4" data-volume="0.35" data-fade-out="0.8"></audio>
+      <audio id="sfx-node-1" class="clip" src="assets/sfx/pop.mp3" data-start="61.5" data-duration="0.7" data-track-index="4" data-volume="0.6"></audio>
+      <audio id="sfx-node-2" class="clip" src="assets/sfx/click-soft.mp3" data-start="63.7" data-duration="0.37" data-track-index="4" data-volume="0.9"></audio>
+      <audio id="sfx-node-3" class="clip" src="assets/sfx/pop.mp3" data-start="65.9" data-duration="0.7" data-track-index="4" data-volume="0.6"></audio>
+      <audio id="sfx-node-4" class="clip" src="assets/sfx/click-soft.mp3" data-start="67.9" data-duration="0.37" data-track-index="4" data-volume="0.9"></audio>
+      <audio id="sfx-doors-close" class="clip" src="assets/sfx/whoosh.mp3" data-start="78" data-duration="0.57" data-track-index="4" data-volume="0.35"></audio>
+      <audio id="sfx-doors-open" class="clip" src="assets/sfx/whoosh-cinematic.mp3" data-start="78.65" data-duration="2" data-media-start="1.8" data-track-index="5" data-volume="0.35" data-fade-out="0.8"></audio>
+      <audio id="sfx-arrow" class="clip" src="assets/sfx/click-soft.mp3" data-start="84.6" data-duration="0.37" data-track-index="4" data-volume="0.9"></audio>
+      <audio id="sfx-shoot" class="clip" src="assets/sfx/whoosh.mp3" data-start="86.45" data-duration="0.57" data-track-index="4" data-volume="0.35"></audio>
+      <audio id="sfx-riser" class="clip" src="assets/sfx/riser.mp3" data-start="86.43" data-duration="2.4" data-media-start="1.2" data-track-index="5" data-volume="0.2" data-fade-in="0.4" data-fade-out="0.3"></audio>
+      <audio id="sfx-mark" class="clip" src="assets/sfx/impact-bass-1.mp3" data-start="88.62" data-duration="2.1" data-track-index="4" data-volume="0.5" data-fade-out="1"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>
