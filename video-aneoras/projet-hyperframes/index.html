@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="fr" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Montserrat"; font-weight: 300; src: url("assets/fonts/montserrat-latin-300-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Montserrat"; font-weight: 400; src: url("assets/fonts/montserrat-latin-400-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Montserrat"; font-weight: 500; src: url("assets/fonts/montserrat-latin-500-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Montserrat"; font-weight: 500; font-style: italic; src: url("assets/fonts/montserrat-latin-500-italic.woff2") format("woff2"); }
+      @font-face { font-family: "Montserrat"; font-weight: 600; src: url("assets/fonts/montserrat-latin-600-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Montserrat"; font-weight: 700; src: url("assets/fonts/montserrat-latin-700-normal.woff2") format("woff2"); }
+      :root {
+        --navy: #05254e;
+        --navy-deep: #021630;
+        --red: #b71932;
+        --gold: #d6a13b;
+        --gold-light: #f4d58a;
+        --gold-dark: #b88626;
+        --light: #f6f7fa;
+        --grey: #e8e8eb;
+        --ink: #2b2b2b;
+        --white: #ffffff;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--navy-deep); }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; font-family: "Montserrat", sans-serif; }
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .bg-navy { background: radial-gradient(120% 100% at 50% 40%, #0a3366 0%, var(--navy) 45%, var(--navy-deep) 100%); color: var(--white); }
+      .bg-deep { background: radial-gradient(90% 90% at 50% 50%, #08295a 0%, var(--navy-deep) 70%, #010b1c 100%); color: var(--white); }
+      .bg-light { background: radial-gradient(110% 100% at 30% 20%, #ffffff 0%, var(--light) 55%, #eceef3 100%); color: var(--navy); }
+      .inner { position: absolute; inset: 0; }
+      .g { background: linear-gradient(100deg, var(--gold-dark) 0%, var(--gold-light) 50%, var(--gold) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.04em 0.02em 0.12em; margin: -0.04em -0.02em -0.12em; }
+      .wi { display: inline-block; will-change: transform; }
+      .kicker { display: flex; align-items: center; gap: 22px; font-size: 28px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold); }
+      .kicker .bar { width: 64px; height: 3px; background: linear-gradient(90deg, var(--gold-dark), var(--gold-light)); transform-origin: left center; }
+      .center { position: absolute; left: 0; right: 0; text-align: center; }
+      .dotgrid { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.09) 1.4px, transparent 1.6px); background-size: 48px 48px; -webkit-mask-image: radial-gradient(70% 70% at 50% 50%, #000 20%, transparent 85%); mask-image: radial-gradient(70% 70% at 50% 50%, #000 20%, transparent 85%); }
+      .dotgrid.dark { background-image: radial-gradient(rgba(5,37,78,0.09) 1.4px, transparent 1.6px); }
+      .particle { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--gold-light); box-shadow: 0 0 10px rgba(244,213,138,0.9); }
+      .ico { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+      .star4 { position: absolute; }
+
+      /* S1 */
+      #s1 .l1 { top: 330px; font-size: 64px; font-weight: 300; letter-spacing: 0.01em; }
+      #s1 .l2 { top: 430px; font-size: 96px; font-weight: 600; letter-spacing: -0.01em; }
+      #s1 .l3 { top: 575px; font-size: 54px; font-weight: 300; color: rgba(255,255,255,0.88); }
+      #s1 .glow { position: absolute; left: 960px; top: 210px; width: 900px; height: 900px; margin: -450px 0 0 -450px; border-radius: 50%; background: radial-gradient(circle, rgba(244,213,138,0.35) 0%, rgba(214,161,59,0.12) 30%, transparent 62%); }
+
+      /* S2 */
+      #s2 .kicker { position: absolute; left: 200px; top: 300px; }
+      #s2 .h1 { position: absolute; left: 200px; top: 360px; font-size: 82px; font-weight: 600; line-height: 1.18; width: 1640px; }
+      #s2 .h1 .sub { font-weight: 300; }
+      #s2 svg.curve { position: absolute; left: 0; top: 0; }
+
+      /* S3 */
+      #s3 .a { top: 380px; font-size: 64px; font-weight: 300; }
+      #s3 .b { top: 470px; font-size: 150px; font-weight: 700; letter-spacing: -0.02em; }
+
+      /* S4 */
+      #s4 .kicker { position: absolute; left: 160px; top: 150px; }
+      #s4 .title { position: absolute; left: 160px; top: 205px; font-size: 84px; font-weight: 700; color: var(--navy); }
+      #s4 .title .light { font-weight: 300; }
+      #s4 .cards { position: absolute; left: 160px; right: 160px; top: 440px; display: flex; gap: 48px; }
+      .card { position: relative; flex: 1; height: 440px; background: var(--white); border-radius: 18px; box-shadow: 0 30px 60px -30px rgba(5,37,78,0.35), 0 2px 0 rgba(5,37,78,0.04); padding: 56px 48px; overflow: hidden; }
+      .card .top { position: absolute; left: 0; top: 0; height: 6px; width: 100%; background: linear-gradient(90deg, var(--gold-dark), var(--gold-light), var(--gold)); transform-origin: left; }
+      .card .num { font-size: 28px; font-weight: 600; letter-spacing: 0.25em; color: var(--gold); }
+      .card .icon { width: 92px; height: 92px; margin: 26px 0 30px; border-radius: 50%; background: rgba(5,37,78,0.06); color: var(--navy); display: flex; align-items: center; justify-content: center; }
+      .card .icon svg { width: 52px; height: 52px; }
+      .card .verb { font-size: 50px; font-weight: 700; color: var(--navy); }
+      .card .what { margin-top: 14px; font-size: 28px; font-weight: 400; color: #4a5568; line-height: 1.35; }
+
+      /* S5 */
+      #s5 .row1 { position: absolute; left: 0; right: 0; top: 170px; display: flex; justify-content: center; align-items: center; gap: 44px; font-size: 92px; font-weight: 700; }
+      #s5 .row1 .arrow { width: 220px; height: 60px; }
+      #s5 .mission { position: absolute; left: 0; right: 0; top: 400px; text-align: center; }
+      #s5 .mission .kicker { justify-content: center; }
+      #s5 .mission .txt { margin-top: 26px; font-size: 48px; font-weight: 300; color: rgba(255,255,255,0.92); }
+      #s5 .mission .txt b { font-weight: 600; color: var(--white); }
+      #s5 .trio { position: absolute; left: 210px; right: 210px; top: 680px; display: flex; justify-content: space-between; }
+      .pill { width: 440px; text-align: center; }
+      .pill .ic { width: 96px; height: 96px; margin: 0 auto 22px; border: 2px solid rgba(214,161,59,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--gold-light); }
+      .pill .ic svg { width: 50px; height: 50px; }
+      .pill .lbl { font-size: 44px; font-weight: 600; }
+      .pill .ul { margin: 16px auto 0; width: 120px; height: 3px; background: linear-gradient(90deg, var(--gold-dark), var(--gold-light)); }
+
+      /* S6 */
+      #s6 .kicker { position: absolute; left: 0; right: 0; top: 190px; justify-content: center; }
+      #s6 .pillars { position: absolute; left: 180px; right: 180px; top: 300px; display: flex; justify-content: space-between; }
+      .pillar { width: 470px; text-align: center; }
+      .pillar .ic { width: 150px; height: 150px; margin: 0 auto 34px; border-radius: 50%; background: var(--navy); color: var(--gold-light); display: flex; align-items: center; justify-content: center; box-shadow: 0 24px 50px -20px rgba(5,37,78,0.55); }
+      .pillar .ic svg { width: 76px; height: 76px; }
+      .pillar .nm { font-size: 54px; font-weight: 700; letter-spacing: 0.14em; color: var(--navy); }
+      #s6 .goal { position: absolute; left: 0; right: 0; top: 760px; text-align: center; font-size: 46px; font-weight: 300; color: var(--navy); }
+      #s6 .goal b { font-weight: 700; }
+      #s6 .phaseB { position: absolute; inset: 0; }
+      #s6 .chart { position: absolute; left: 180px; top: 300px; width: 820px; height: 560px; }
+      #s6 .list { position: absolute; left: 1080px; top: 360px; width: 700px; }
+      .li { display: flex; align-items: center; gap: 30px; margin-bottom: 56px; }
+      .li .ic { flex: none; width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      .li .ic svg { width: 44px; height: 44px; }
+      .li .tx { font-size: 44px; font-weight: 600; line-height: 1.2; }
+      .li .tx small { display: block; font-size: 28px; font-weight: 400; opacity: 0.75; margin-top: 4px; }
+      #s6 .li .ic { background: rgba(5,37,78,0.07); color: var(--navy); }
+      #s6 .li .tx { color: var(--navy); }
+      #s6 .li.big .tx { font-size: 58px; font-weight: 700; }
+      #s6 .li.big .ic { background: var(--navy); color: var(--gold-light); }
+
+      /* S7 / S8 */
+      .split { position: absolute; inset: 0; }
+      .split .left { position: absolute; left: 150px; top: 0; bottom: 0; width: 700px; display: flex; flex-direction: column; justify-content: center; }
+      .split .left .for { font-size: 40px; font-weight: 300; margin: 26px 0 6px; }
+      .split .left .big { font-size: 96px; font-weight: 700; line-height: 1.04; }
+      .split .left .line { margin-top: 40px; width: 160px; height: 4px; background: linear-gradient(90deg, var(--gold-dark), var(--gold-light)); transform-origin: left; }
+      .split .right { position: absolute; left: 960px; top: 0; bottom: 0; width: 820px; display: flex; flex-direction: column; justify-content: center; }
+      #s7 .li .ic { border: 2px solid rgba(214,161,59,0.75); color: var(--gold-light); }
+      #s7 .li .tx { color: var(--white); }
+      #s7 .vsep, #s8 .vsep { position: absolute; left: 880px; top: 260px; width: 2px; height: 560px; background: linear-gradient(180deg, transparent, var(--gold), transparent); transform-origin: top; }
+      #s8 .li { margin-bottom: 40px; }
+      #s8 .li .ic { background: var(--navy); color: var(--gold-light); }
+      #s8 .li .tx { color: var(--navy); font-size: 40px; }
+      #s8 .prog { margin-top: 6px; width: 640px; height: 14px; border-radius: 7px; background: var(--grey); overflow: hidden; margin-left: 114px; }
+      #s8 .prog .fill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--navy), var(--gold)); transform-origin: left; border-radius: 7px; }
+      #s8 .pct { margin-left: 114px; margin-top: 10px; font-size: 28px; font-weight: 600; color: var(--gold-dark); letter-spacing: 0.1em; }
+
+      /* S9 */
+      #s9 .burst { position: absolute; left: 960px; top: 540px; width: 1600px; height: 1600px; margin: -800px 0 0 -800px; border-radius: 50%; background: radial-gradient(circle, rgba(244,213,138,0.45) 0%, rgba(214,161,59,0.18) 22%, rgba(5,37,78,0) 55%); }
+      #s9 .ring { position: absolute; left: 960px; top: 540px; border-radius: 50%; border: 2px solid rgba(244,213,138,0.5); }
+      #s9 .a { top: 330px; font-size: 60px; font-weight: 300; }
+      #s9 .b { top: 420px; font-size: 140px; font-weight: 700; letter-spacing: -0.01em; }
+      #s9 .c { top: 610px; font-size: 76px; font-weight: 600; }
+
+      /* S10 */
+      #s10 .cols { position: absolute; left: 150px; right: 150px; top: 270px; display: flex; justify-content: space-between; }
+      .col { width: 540px; text-align: center; }
+      .col .ic { width: 170px; height: 170px; margin: 0 auto 44px; border-radius: 50%; border: 2px solid rgba(244,213,138,0.6); color: var(--gold-light); display: flex; align-items: center; justify-content: center; position: relative; }
+      .col .ic svg { width: 84px; height: 84px; }
+      .col .ic .halo { position: absolute; inset: -40px; border-radius: 50%; background: radial-gradient(circle, rgba(244,213,138,0.35), transparent 65%); }
+      .col .t1 { white-space: nowrap; font-size: 40px; font-weight: 300; color: rgba(255,255,255,0.92); line-height: 1.2; }
+      .col .t2 { font-size: 58px; font-weight: 700; margin-top: 8px; line-height: 1.15; }
+      #s10 .horizon { position: absolute; left: 0; right: 0; top: 900px; height: 2px; background: linear-gradient(90deg, transparent, var(--gold-light), transparent); transform-origin: center; }
+      #s10 .hglow { position: absolute; left: 260px; right: 260px; top: 820px; height: 160px; border-radius: 50%; background: radial-gradient(50% 50% at 50% 50%, rgba(244,213,138,0.25), transparent 70%); }
+
+      /* S11 */
+      #s11 .a { top: 300px; font-size: 64px; font-weight: 300; }
+      #s11 .b { top: 395px; font-size: 64px; font-weight: 300; }
+      #s11 .c { top: 540px; font-size: 128px; font-weight: 700; letter-spacing: -0.01em; }
+      #s11 .ul { position: absolute; left: 560px; width: 800px; top: 720px; height: 4px; background: linear-gradient(90deg, var(--gold-dark), var(--gold-light), var(--gold)); transform-origin: left; }
+
+      /* swoosh wipe */
+      #wipe { position: absolute; inset: 0; pointer-events: none; z-index: 50; }
+
+      /* S12 logo */
+      #s12 { background: radial-gradient(90% 90% at 50% 45%, #ffffff 0%, #f7f8fb 60%, #eceef3 100%); }
+      #s12 .logo { position: absolute; left: 0; right: 0; top: 0; height: 1080px; }
+      #s12 .icon { position: absolute; left: 760px; top: 150px; width: 400px; height: 280px; overflow: visible; }
+      #s12 .word { position: absolute; left: 600px; top: 500px; width: 720px; height: 76px; overflow: visible; }
+      #s12 .tag { position: absolute; left: 0; right: 0; top: 640px; text-align: center; font-size: 28px; font-weight: 400; letter-spacing: 0.42em; color: var(--navy); padding-left: 0.42em; }
+      #s12 .end { position: absolute; left: 0; right: 0; top: 800px; text-align: center; font-size: 52px; font-weight: 500; color: var(--navy); }
+      #s12 .endline { position: absolute; left: 860px; width: 200px; top: 900px; height: 3px; background: linear-gradient(90deg, var(--gold-dark), var(--gold-light), var(--gold)); transform-origin: center; }
+      #s12 .flare { position: absolute; left: 1108px; top: 196px; width: 420px; height: 420px; margin: -210px 0 0 -210px; border-radius: 50%; background: radial-gradient(circle, rgba(244,213,138,0.75) 0%, rgba(214,161,59,0.25) 22%, transparent 60%); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="86" data-width="1920" data-height="1080">
+      <!-- AUDIO -->
+      <audio id="vo" src="assets/voix-off.mp3" data-start="0.6" data-duration="78.84" data-track-index="10" data-volume="1.25"></audio>
+      <audio id="bgm" src="assets/music.mp3" data-start="0.6" data-duration="85.4" data-track-index="11" data-volume="0.13" data-fade-out="2.5"></audio>
+
+      <!-- SVG defs -->
+      <svg width="0" height="0" style="position:absolute">
+        <defs>
+          <linearGradient id="gGold" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stop-color="#B88626" />
+            <stop offset="0.55" stop-color="#F4D58A" />
+            <stop offset="1" stop-color="#D6A13B" />
+          </linearGradient>
+          <linearGradient id="gGoldH" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#B88626" stop-opacity="0" />
+            <stop offset="0.35" stop-color="#D6A13B" />
+            <stop offset="0.7" stop-color="#F4D58A" />
+            <stop offset="1" stop-color="#D6A13B" />
+          </linearGradient>
+          <symbol id="star" viewBox="-30 -30 60 60"><path d="M0 -30 Q3 -3 30 0 Q3 3 0 30 Q-3 3 -30 0 Q-3 -3 0 -30Z" fill="url(#gGold)" /></symbol>
+          <!-- icons 24x24 -->
+          <symbol id="i-search" viewBox="0 0 24 24"><g class="ico"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></g></symbol>
+          <symbol id="i-users" viewBox="0 0 24 24"><g class="ico"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.6 14.2c3 .2 5.4 2.5 5.4 5.8"/></g></symbol>
+          <symbol id="i-blocks" viewBox="0 0 24 24"><g class="ico"><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/><rect x="8" y="3" width="8" height="8" rx="1"/></g></symbol>
+          <symbol id="i-book" viewBox="0 0 24 24"><g class="ico"><path d="M3 5.5c3-1.3 6.2-1.1 9 1 2.8-2.1 6-2.3 9-1v13.5c-3-1.3-6.2-1.1-9 1-2.8-2.1-6-2.3-9-1z"/><path d="M12 6.5v13.5"/></g></symbol>
+          <symbol id="i-share" viewBox="0 0 24 24"><g class="ico"><path d="M4 8h14l-3.5-3.5"/><path d="M20 16H6l3.5 3.5"/></g></symbol>
+          <symbol id="i-team" viewBox="0 0 24 24"><g class="ico"><circle cx="12" cy="7" r="3"/><circle cx="5" cy="10" r="2.2"/><circle cx="19" cy="10" r="2.2"/><path d="M7 20c0-2.8 2.2-5 5-5s5 2.2 5 5"/><path d="M1.5 19c0-2.2 1.6-4 3.5-4.2"/><path d="M22.5 19c0-2.2-1.6-4-3.5-4.2"/></g></symbol>
+          <symbol id="i-chat" viewBox="0 0 24 24"><g class="ico"><path d="M4 4.5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H10l-5 4v-4H4a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z"/><path d="M7.5 9.5h9M7.5 12.5h6"/></g></symbol>
+          <symbol id="i-cap" viewBox="0 0 24 24"><g class="ico"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/><path d="M22 9v6"/></g></symbol>
+          <symbol id="i-chip" viewBox="0 0 24 24"><g class="ico"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/><path d="M9.5 3v3.5M14.5 3v3.5M9.5 17.5V21M14.5 17.5V21M3 9.5h3.5M3 14.5h3.5M17.5 9.5H21M17.5 14.5H21"/><path d="M10 14l2-4.5 2 4.5M10.7 12.6h2.6"/></g></symbol>
+          <symbol id="i-gem" viewBox="0 0 24 24"><g class="ico"><path d="M6 4h12l4 5-10 11L2 9z"/><path d="M2 9h20M9 4l3 16 3-16"/></g></symbol>
+          <symbol id="i-flag" viewBox="0 0 24 24"><g class="ico"><path d="M5 21V4"/><path d="M5 4.5h12l-2.5 4 2.5 4H5"/></g></symbol>
+          <symbol id="i-chart" viewBox="0 0 24 24"><g class="ico"><path d="M3 21h18"/><path d="M6 21v-6M11 21v-9M16 21v-12"/><path d="M4 12l6-5 4 2 6-6M16.5 3H20v3.5"/></g></symbol>
+          <symbol id="i-flow" viewBox="0 0 24 24"><g class="ico"><rect x="2.5" y="3.5" width="7" height="5" rx="1"/><rect x="14.5" y="3.5" width="7" height="5" rx="1"/><rect x="8.5" y="15.5" width="7" height="5" rx="1"/><path d="M6 8.5v3h12v-3M12 11.5v4"/></g></symbol>
+          <symbol id="i-growth" viewBox="0 0 24 24"><g class="ico"><path d="M3 20h5v-5h5v-5h5V5h3"/><path d="M17 3l4 2-2 4"/></g></symbol>
+          <symbol id="i-pencil" viewBox="0 0 24 24"><g class="ico"><path d="M4 20l1-4.5L16.5 4a2.1 2.1 0 0 1 3 3L8 18.5z"/><path d="M14.5 6l3 3"/></g></symbol>
+          <symbol id="i-path" viewBox="0 0 24 24"><g class="ico"><circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="6" r="2.2"/><path d="M7 18h7a3.5 3.5 0 0 0 0-7h-4a3.5 3.5 0 0 1 0-7h7"/></g></symbol>
+          <symbol id="i-laptop" viewBox="0 0 24 24"><g class="ico"><rect x="4" y="4.5" width="16" height="11" rx="1.2"/><path d="M2 19.5h20"/><path d="M8 12l2.5-2.5 2 2L16 8"/></g></symbol>
+          <symbol id="i-target" viewBox="0 0 24 24"><g class="ico"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/><path d="M12 12l7.5-7.5M17 4.5h2.5V7"/></g></symbol>
+          <symbol id="i-compass" viewBox="0 0 24 24"><g class="ico"><circle cx="12" cy="12" r="9"/><path d="M15.8 8.2l-2.2 5.4-5.4 2.2 2.2-5.4z"/></g></symbol>
+          <symbol id="i-bulb" viewBox="0 0 24 24"><g class="ico"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.8 10.6c.6.5.8 1.2.8 2.4h6c0-1.2.2-1.9.8-2.4A6 6 0 0 0 12 3z"/></g></symbol>
+        </defs>
+      </svg>
+
+      <!-- ================= S1 ================= -->
+      <div id="s1" class="clip scene bg-navy" data-start="0" data-duration="6" data-track-index="0">
+        <div class="dotgrid"></div>
+        <svg id="net" class="clip" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+        <div class="glow"></div>
+        <svg class="star4" id="s1star" style="left:922px;top:172px;width:76px;height:76px"><use href="#star" /></svg>
+        <div class="inner">
+          <div class="center l1 split-me">Derrière chaque organisation,</div>
+          <div class="center l2 split-me">il existe un <span class="g">potentiel</span></div>
+          <div class="center l3 split-me">qui ne demande qu’à être révélé.</div>
+        </div>
+      </div>
+
+      <!-- ================= S2 ================= -->
+      <div id="s2" class="clip scene bg-navy" data-start="5.6" data-duration="4.6" data-track-index="1">
+        <div class="dotgrid"></div>
+        <svg class="curve" width="1920" height="1080" viewBox="0 0 1920 1080">
+          <path id="s2curve" d="M60 1070 C 700 1040, 1300 960, 1760 720" fill="none" stroke="url(#gGoldH)" stroke-width="7" stroke-linecap="round" />
+        </svg>
+        <svg class="star4" id="s2star" style="left:1722px;top:682px;width:76px;height:76px"><use href="#star" /></svg>
+        <div class="inner">
+          <div class="kicker"><span class="bar"></span><span>Alors,</span></div>
+          <div class="h1">
+            <div class="split-me">Comment transformer ce potentiel</div>
+            <div class="split-me sub">en véritable <span class="g" style="font-weight:600">levier de développement</span>&nbsp;?</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S3 ================= -->
+      <div id="s3" class="clip scene bg-deep" data-start="9.9" data-duration="2.6" data-track-index="2">
+        <div class="dotgrid"></div>
+        <svg class="star4" id="s3star" style="left:1530px;top:390px;width:90px;height:90px"><use href="#star" /></svg>
+        <div class="inner">
+          <div class="center a split-me">C’est précisément</div>
+          <div class="center b split-me"><span class="g">notre ambition.</span></div>
+        </div>
+      </div>
+
+      <!-- ================= S4 ================= -->
+      <div id="s4" class="clip scene bg-light" data-start="12.2" data-duration="8.8" data-track-index="3">
+        <div class="dotgrid dark"></div>
+        <div class="inner">
+          <div class="kicker"><span class="bar"></span><span>Notre approche</span></div>
+          <div class="title split-me">À vos côtés, <span class="light">nous prenons le temps.</span></div>
+          <div class="cards">
+            <div class="card" id="c1"><div class="top"></div><div class="num">01</div><div class="icon"><svg><use href="#i-search"/></svg></div><div class="verb">Comprendre</div><div class="what">vos enjeux</div></div>
+            <div class="card" id="c2"><div class="top"></div><div class="num">02</div><div class="icon"><svg><use href="#i-users"/></svg></div><div class="verb">Accompagner</div><div class="what">vos réflexions</div></div>
+            <div class="card" id="c3"><div class="top"></div><div class="num">03</div><div class="icon"><svg><use href="#i-blocks"/></svg></div><div class="verb">Construire</div><div class="what">avec vous les réponses aux défis <b style="color:var(--navy)">d’aujourd’hui</b> et <b style="color:var(--gold-dark)">de demain</b></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S5 ================= -->
+      <div id="s5" class="clip scene bg-navy" data-start="20.6" data-duration="8.8" data-track-index="4">
+        <div class="dotgrid"></div>
+        <div class="inner">
+          <div class="row1">
+            <span class="split-me">De la stratégie</span>
+            <svg class="arrow" viewBox="0 0 220 60"><path id="s5arrow" d="M6 30 H200 M178 10 L204 30 L178 50" fill="none" stroke="url(#gGoldH)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="split-me"><span class="g">à l’action</span></span>
+          </div>
+          <div class="mission">
+            <div class="kicker"><span class="bar"></span><span>Notre mission</span><span class="bar" style="transform-origin:right"></span></div>
+            <div class="txt split-me">Faire <b>évoluer les compétences</b> et réinventer les façons de…</div>
+          </div>
+          <div class="trio">
+            <div class="pill" id="p1"><div class="ic"><svg><use href="#i-book"/></svg></div><div class="lbl">Apprendre</div><div class="ul"></div></div>
+            <div class="pill" id="p2"><div class="ic"><svg><use href="#i-share"/></svg></div><div class="lbl">Transmettre</div><div class="ul"></div></div>
+            <div class="pill" id="p3"><div class="ic"><svg><use href="#i-team"/></svg></div><div class="lbl">Travailler ensemble</div><div class="ul"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S6 ================= -->
+      <div id="s6" class="clip scene bg-light" data-start="29" data-duration="11" data-track-index="5">
+        <div class="dotgrid dark"></div>
+        <div class="inner" id="s6A">
+          <div class="kicker"><span class="bar"></span><span>Nous mobilisons</span><span class="bar" style="transform-origin:right"></span></div>
+          <div class="pillars">
+            <div class="pillar" id="pl1"><div class="ic"><svg><use href="#i-chat"/></svg></div><div class="nm">CONSEIL</div></div>
+            <div class="pillar" id="pl2"><div class="ic"><svg><use href="#i-cap"/></svg></div><div class="nm">FORMATION</div></div>
+            <div class="pillar" id="pl3"><div class="ic"><svg><use href="#i-chip"/></svg></div><div class="nm">TECHNOLOGIES</div></div>
+          </div>
+          <div class="goal split-me">pour faire <b>progresser les organisations</b></div>
+        </div>
+        <div class="phaseB" id="s6B">
+          <svg class="chart" viewBox="0 0 820 560">
+            <g id="bars">
+              <rect x="40" y="420" width="90" height="120" rx="8" fill="#05254E" opacity="0.18"/>
+              <rect x="190" y="350" width="90" height="190" rx="8" fill="#05254E" opacity="0.32"/>
+              <rect x="340" y="270" width="90" height="270" rx="8" fill="#05254E" opacity="0.5"/>
+              <rect x="490" y="180" width="90" height="360" rx="8" fill="#05254E" opacity="0.75"/>
+              <rect x="640" y="80" width="90" height="460" rx="8" fill="#05254E"/>
+            </g>
+            <line x1="0" y1="540" x2="820" y2="540" stroke="#05254E" stroke-opacity="0.25" stroke-width="2"/>
+            <path id="s6line" d="M20 450 C 120 430, 160 380, 235 330 S 330 260, 385 240 S 480 160, 535 150 S 640 70, 700 40" fill="none" stroke="url(#gGoldH)" stroke-width="8" stroke-linecap="round"/>
+          </svg>
+          <svg class="star4" id="s6star" style="left:832px;top:290px;width:80px;height:80px"><use href="#star" /></svg>
+          <div class="list">
+            <div class="li" id="s6l1"><div class="ic"><svg><use href="#i-gem"/></svg></div><div class="tx">Valoriser les savoirs</div></div>
+            <div class="li" id="s6l2"><div class="ic"><svg><use href="#i-flag"/></svg></div><div class="tx">Inscrire vos ambitions</div></div>
+            <div class="li big" id="s6l3"><div class="ic"><svg><use href="#i-chart"/></svg></div><div class="tx">Performance <span class="g">durable</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S7 ================= -->
+      <div id="s7" class="clip scene bg-navy" data-start="39.6" data-duration="8.6" data-track-index="6">
+        <div class="dotgrid"></div>
+        <div class="split">
+          <div class="left">
+            <div class="kicker"><span class="bar"></span><span>Nos expertises</span></div>
+            <div class="for split-me">Pour les</div>
+            <div class="big split-me">Entreprises <span class="g">privées</span></div>
+            <div class="line"></div>
+          </div>
+          <div class="vsep"></div>
+          <div class="right">
+            <div class="li" id="s7l1"><div class="ic"><svg><use href="#i-flow"/></svg></div><div class="tx">Structurer &amp; digitaliser<small>vos processus</small></div></div>
+            <div class="li" id="s7l2"><div class="ic"><svg><use href="#i-share"/></svg></div><div class="tx">Transmettre<small>les savoir-faire</small></div></div>
+            <div class="li" id="s7l3"><div class="ic"><svg><use href="#i-growth"/></svg></div><div class="tx">Développer<small>les compétences</small></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S8 ================= -->
+      <div id="s8" class="clip scene bg-light" data-start="47.8" data-duration="12.2" data-track-index="7">
+        <div class="dotgrid dark"></div>
+        <div class="split">
+          <div class="left">
+            <div class="kicker"><span class="bar"></span><span>Nos expertises</span></div>
+            <div class="for split-me">Pour les</div>
+            <div class="big split-me" style="color:var(--navy)">Organisations <span class="g">éducatives</span></div>
+            <div class="line"></div>
+          </div>
+          <div class="vsep"></div>
+          <div class="right">
+            <div class="li" id="s8l1"><div class="ic"><svg><use href="#i-pencil"/></svg></div><div class="tx">Formations sur-mesure</div></div>
+            <div class="li" id="s8l2"><div class="ic"><svg><use href="#i-path"/></svg></div><div class="tx">Parcours pédagogiques modernisés</div></div>
+            <div class="li" id="s8l3"><div class="ic"><svg><use href="#i-laptop"/></svg></div><div class="tx">Environnements digitaux</div></div>
+            <div class="li" id="s8l4" style="margin-bottom:12px"><div class="ic"><svg><use href="#i-target"/></svg></div><div class="tx">Apprentissages enrichis</div></div>
+            <div id="s8prog"><div class="prog"><div class="fill"></div></div><div class="pct">PROGRESSION MESURÉE</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= S9 ================= -->
+      <div id="s9" class="clip scene bg-deep" data-start="59.7" data-duration="3.8" data-track-index="8">
+        <div class="burst"></div>
+        <div id="rings"></div>
+        <div id="parts9"></div>
+        <div class="inner">
+          <div class="center a split-me">Nous croyons à une technologie</div>
+          <div class="center b split-me">qui <span class="g">amplifie</span></div>
+          <div class="center c split-me">le potentiel humain.</div>
+        </div>
+      </div>
+
+      <!-- ================= S10 ================= -->
+      <div id="s10" class="clip scene bg-deep" data-start="63.3" data-duration="7.5" data-track-index="9">
+        <div class="dotgrid"></div>
+        <div class="hglow"></div>
+        <div class="horizon"></div>
+        <div class="cols">
+          <div class="col" id="k1"><div class="ic"><div class="halo"></div><svg><use href="#i-chip"/></svg></div><div class="t1">Une intelligence artificielle</div><div class="t2 g">qui assiste</div></div>
+          <div class="col" id="k2"><div class="ic"><div class="halo"></div><svg><use href="#i-compass"/></svg></div><div class="t1">Une expertise</div><div class="t2 g">qui guide</div></div>
+          <div class="col" id="k3"><div class="ic"><div class="halo"></div><svg><use href="#i-bulb"/></svg></div><div class="t1">Une innovation qui ouvre</div><div class="t2 g">de nouvelles perspectives</div></div>
+        </div>
+      </div>
+
+      <!-- ================= S11 ================= -->
+      <div id="s11" class="clip scene bg-navy" data-start="70.5" data-duration="5" data-track-index="10">
+        <div class="dotgrid"></div>
+        <div class="inner">
+          <div class="center a split-me">Parce que la connaissance</div>
+          <div class="center b split-me">prend toute sa valeur lorsqu’elle devient</div>
+          <div class="center c split-me"><span class="g">une capacité d’agir.</span></div>
+          <div class="ul"></div>
+        </div>
+      </div>
+
+      <!-- ================= S12 : LOGO ================= -->
+      <div id="s12" class="clip scene" data-start="75.1" data-duration="10.9" data-track-index="11">
+        <div class="dotgrid dark"></div>
+        <div class="flare" id="flare"></div>
+        <div class="logo" id="logo">
+          <svg class="icon" viewBox="0 0 400 280">
+            <defs>
+              <clipPath id="swClip"><rect id="swRect" x="0" y="0" width="0" height="280" /></clipPath>
+            </defs>
+            <path id="lgNavy" d="M98 264 L152 264 L209 140 L240 100 L205 18 Z" fill="#05254E" />
+            <path id="lgRed" d="M206 128 L243 106 L318 264 L266 264 Z" fill="#B71932" />
+            <g clip-path="url(#swClip)">
+              <path id="lgSwoosh" d="M52 266 C 118 168, 212 104, 342 52 C 236 116, 146 182, 86 266 Z" fill="url(#gGold)" />
+            </g>
+            <g id="lgStar" transform="translate(352 44)"><path d="M0 -30 Q3 -3 30 0 Q3 3 0 30 Q-3 3 -30 0 Q-3 -3 0 -30Z" fill="url(#gGold)" /></g>
+          </svg>
+          <svg class="word" viewBox="-4 -4 684 72">
+            <g fill="none" stroke="#05254E" stroke-width="4.5" stroke-linejoin="miter">
+              <path class="lt" d="M0 62 L25 2 L50 62" />
+              <path class="lt" d="M110 62 V2 L156 62 V2" stroke-linejoin="bevel" />
+              <g class="lt" fill="#D6A13B" stroke="none"><rect x="215" y="0" width="46" height="7" /><rect x="215" y="28.5" width="46" height="7" /><rect x="215" y="57" width="46" height="7" /></g>
+              <circle class="lt" cx="345" cy="32" r="30" />
+              <path class="lt" d="M425 62 V2 H452 A15 15 0 0 1 452 32 H425 M447 32 L472 62" />
+              <path class="lt" d="M525 62 L550 2 L575 62" />
+              <path class="lt" d="M674 10 C 666 -1, 634 -2, 632 15 C 630 30, 676 30, 676 46 C 676 66, 638 67, 630 53" />
+            </g>
+          </svg>
+          <div class="tag"><span id="tg1">VOTRE POTENTIEL.</span> <span id="tg2">NOTRE STRATÉGIE.</span></div>
+        </div>
+        <div class="end split-me">Écrivons ensemble son <span class="g" style="font-weight:700">prochain chapitre.</span></div>
+        <div class="endline"></div>
+      </div>
+
+      <!-- gold swoosh wipe overlay -->
+      <svg id="wipe" class="clip" data-start="0" data-duration="86" data-track-index="20" width="1920" height="1080" viewBox="0 0 1920 1080">
+        <path id="wipePath" d="M-200 1200 C 400 900, 1100 600, 2200 -150 L 2200 -60 C 1200 700, 500 1000, -200 1320 Z" fill="url(#gGold)" opacity="0.95"/>
+      </svg>
+    </div>
+
+    <script>
+      (function () {
+        const V = (t) => t + 0.6; // voice-off starts at 0.6s
+        // deterministic PRNG
+        let seed = 1234567;
+        const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+
+        // split text into masked words
+        document.querySelectorAll(".split-me").forEach((el) => {
+          const out = [];
+          const walk = (node, cls) => {
+            node.childNodes.forEach((n) => {
+              if (n.nodeType === 3) {
+                n.textContent.split(/([ \t\n]+)/).forEach((p) => {
+                  if (!p) return;
+                  if (/^[ \t\n]+$/.test(p)) out.push(document.createTextNode(" "));
+                  else {
+                    const w = document.createElement("span"); w.className = "w";
+                    const i = document.createElement("span"); i.className = "wi" + (cls ? " " + cls : "");
+                    i.textContent = p; w.appendChild(i); out.push(w);
+                  }
+                });
+              } else if (n.nodeType === 1) {
+                const style = n.getAttribute("style") || "";
+                const before = out.length;
+                walk(n, ((cls || "") + " " + (n.className || "")).trim());
+                for (let k = before; k < out.length; k++) if (out[k].firstChild && style) out[k].firstChild.setAttribute("style", style);
+              }
+            });
+          };
+          walk(el, "");
+          el.innerHTML = ""; out.forEach((n) => el.appendChild(n));
+        });
+        const words = (sel) => document.querySelectorAll(sel + " .wi");
+
+        // S1 network
+        const net = document.getElementById("net");
+        const pts = [];
+        for (let i = 0; i < 46; i++) {
+          let x = 80 + rnd() * 1760, y = 60 + rnd() * 960;
+          if (x > 360 && x < 1560 && y > 300 && y < 680) y = rnd() < 0.5 ? y - 260 : y + 260;
+          pts.push([x, y]);
+        }
+        let svgs = "";
+        pts.forEach((p, i) => {
+          pts.forEach((q, j) => {
+            if (j <= i) return;
+            const d = Math.hypot(p[0] - q[0], p[1] - q[1]);
+            if (d < 230) svgs += `<line class="nl" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="rgba(255,255,255,0.13)" stroke-width="1.2"/>`;
+          });
+        });
+        pts.forEach((p) => (svgs += `<circle class="nd" cx="${p[0]}" cy="${p[1]}" r="${2.5 + rnd() * 3}" fill="#ffffff" fill-opacity="0.55"/>`));
+        net.innerHTML = svgs;
+
+        // S9 particles + rings
+        const p9 = document.getElementById("parts9");
+        const parts = [];
+        for (let i = 0; i < 70; i++) {
+          const d = document.createElement("div"); d.className = "particle";
+          const a = rnd() * Math.PI * 2, r0 = 40 + rnd() * 200, r1 = 700 + rnd() * 700;
+          d.style.left = 960 + Math.cos(a) * r0 + "px"; d.style.top = 540 + Math.sin(a) * r0 + "px";
+          const s = 0.5 + rnd() * 1.6; d.style.transform = `scale(${s})`;
+          p9.appendChild(d); parts.push({ d, dx: Math.cos(a) * (r1 - r0), dy: Math.sin(a) * (r1 - r0), delay: rnd() * 1.6 });
+        }
+        const rings = document.getElementById("rings");
+        for (let i = 0; i < 3; i++) { const r = document.createElement("div"); r.className = "ring"; r.style.width = r.style.height = "200px"; r.style.margin = "-100px 0 0 -100px"; rings.appendChild(r); }
+
+        const tl = gsap.timeline({ paused: true });
+        const ease = "power3.out";
+        const inWords = (sel, t, stagger = 0.06, dur = 0.7) => tl.from(words(sel), { yPercent: 115, duration: dur, ease: "power4.out", stagger }, t);
+        const fadeIn = (sel, t, d = 0.6) => tl.fromTo(sel, { opacity: 0 }, { opacity: 1, duration: d, ease: "power1.out" }, t);
+        const drift = (sel, t0, t1, s = 1.04) => tl.fromTo(sel, { scale: 1 }, { scale: s, duration: t1 - t0, ease: "none" }, t0);
+        const starPop = (sel, t) => {
+          tl.fromTo(sel, { scale: 0, rotation: -90, opacity: 0 }, { scale: 1.25, rotation: 0, opacity: 1, duration: 0.6, ease: "back.out(2)" }, t);
+          tl.to(sel, { scale: 1, duration: 0.5, ease: "power2.out" }, t + 0.6);
+          tl.to(sel, { rotation: 45, duration: 3, ease: "none" }, t + 1.1);
+        };
+        const drawPath = (sel, t, d, e = "power2.inOut") => {
+          const p = document.querySelector(sel); const L = p.getTotalLength();
+          p.style.strokeDasharray = L; tl.fromTo(p, { strokeDashoffset: L }, { strokeDashoffset: 0, duration: d, ease: e }, t);
+        };
+
+        // ---------- S1 (0 - 6)
+        tl.fromTo("#net .nl", { opacity: 0 }, { opacity: 1, duration: 2.2, stagger: 0.01, ease: "power1.out" }, 0.1);
+        tl.from("#net .nd", { scale: 0, transformOrigin: "50% 50%", duration: 0.8, stagger: 0.03, ease: "back.out(2)" }, 0.0);
+        drift("#s1 .inner", 0, 6, 1.05);
+        tl.fromTo("#net", { scale: 1.08 }, { scale: 1, duration: 6, ease: "none" }, 0);
+        inWords("#s1 .l1", V(0.0), 0.08);
+        inWords("#s1 .l2", V(1.83), 0.12, 0.8);
+        inWords("#s1 .l3", V(2.94), 0.07);
+        tl.fromTo("#s1 .glow", { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 1.4, ease: "power2.out" }, V(3.9));
+        starPop("#s1star", V(4.0));
+        tl.to("#net .nd", { attr: { fill: "#F4D58A", "fill-opacity": 0.95 }, duration: 0.6, stagger: 0.012 }, V(4.0));
+        tl.to("#net .nl", { attr: { stroke: "rgba(244,213,138,0.35)" }, duration: 0.8 }, V(4.0));
+
+        // ---------- S2 (5.6 - 10.2)
+        fadeIn("#s2", 5.6, 0.5);
+        tl.from("#s2 .kicker .bar", { scaleX: 0, duration: 0.6, ease }, V(5.15));
+        tl.from("#s2 .kicker span:last-child", { x: -30, opacity: 0, duration: 0.6, ease }, V(5.2));
+        inWords("#s2 .h1 > div:nth-child(1)", V(5.9), 0.1);
+        inWords("#s2 .h1 > div:nth-child(2)", V(7.3), 0.1);
+        drawPath("#s2curve", V(7.4), 1.6);
+        starPop("#s2star", V(8.9));
+        drift("#s2 .inner", 5.6, 10.2, 1.03);
+
+        // ---------- S3 (9.9 - 12.5)
+        fadeIn("#s3", 9.9, 0.35);
+        inWords("#s3 .a", V(9.5), 0.08);
+        tl.from(words("#s3 .b"), { yPercent: 115, duration: 0.9, ease: "power4.out", stagger: 0.12 }, V(10.25));
+        starPop("#s3star", V(10.6));
+        drift("#s3 .inner", 9.9, 12.5, 1.06);
+        // wipe S3 -> S4
+        tl.fromTo("#wipePath", { x: -2400, y: 900 }, { x: 2400, y: -900, duration: 0.9, ease: "power2.inOut" }, 11.85);
+
+        // ---------- S4 (12.2 - 21)
+        tl.from("#s4 .kicker .bar", { scaleX: 0, duration: 0.6, ease }, 12.3);
+        tl.from("#s4 .kicker span:last-child", { opacity: 0, x: -20, duration: 0.6, ease }, 12.35);
+        inWords("#s4 .title", V(11.78), 0.07);
+        const card = (id, t) => {
+          tl.from(id, { y: 90, opacity: 0, duration: 0.9, ease: "power3.out" }, t);
+          tl.from(id + " .top", { scaleX: 0, duration: 0.8, ease: "power2.inOut" }, t + 0.25);
+          tl.from(id + " .icon", { scale: 0, duration: 0.6, ease: "back.out(2)" }, t + 0.3);
+        };
+        card("#c1", V(13.4)); card("#c2", V(14.7)); card("#c3", V(16.2));
+        tl.fromTo("#c3 .what b", { color: "#8892a6" }, { color: (i) => (i ? "#B88626" : "#05254E"), duration: 0.5, stagger: 0.7 }, V(18.4));
+        drift("#s4 .inner", 12.2, 21, 1.025);
+
+        // ---------- S5 (20.6 - 29.4)
+        fadeIn("#s5", 20.6, 0.45);
+        inWords("#s5 .row1 > span:nth-child(1)", V(20.27), 0.1);
+        drawPath("#s5arrow", V(20.7), 0.6);
+        inWords("#s5 .row1 > span:nth-child(3)", V(21.0), 0.1);
+        tl.from("#s5 .mission .kicker .bar", { scaleX: 0, duration: 0.6, ease }, V(21.8));
+        tl.from("#s5 .mission .kicker span:nth-child(2)", { opacity: 0, y: 14, duration: 0.6, ease }, V(21.8));
+        inWords("#s5 .mission .txt", V(22.6), 0.07);
+        const pill = (id, t) => {
+          tl.from(id, { y: 60, opacity: 0, duration: 0.8, ease }, t);
+          tl.from(id + " .ul", { scaleX: 0, duration: 0.7, ease: "power2.inOut" }, t + 0.3);
+        };
+        pill("#p1", V(25.4)); pill("#p2", V(26.15)); pill("#p3", V(26.95));
+        drift("#s5 .inner", 20.6, 29.4, 1.03);
+
+        // ---------- S6 (29 - 40)
+        fadeIn("#s6", 29, 0.45);
+        tl.from("#s6 .kicker .bar", { scaleX: 0, duration: 0.6, ease }, V(28.6));
+        tl.from("#s6 .kicker span:nth-child(2)", { opacity: 0, y: 14, duration: 0.6, ease }, V(28.6));
+        const pil = (id, t) => {
+          tl.from(id + " .ic", { scale: 0, duration: 0.7, ease: "back.out(1.8)" }, t);
+          tl.from(id + " .nm", { y: 40, opacity: 0, duration: 0.7, ease }, t + 0.12);
+        };
+        pil("#pl1", V(29.5)); pil("#pl2", V(30.1)); pil("#pl3", V(30.95));
+        inWords("#s6 .goal", V(31.7), 0.07);
+        tl.to("#s6A", { y: -60, opacity: 0, duration: 0.6, ease: "power2.in" }, V(33.5));
+        fadeIn("#s6B", V(33.9), 0.4);
+        tl.from("#bars rect", { scaleY: 0, transformOrigin: "50% 100%", duration: 0.9, stagger: 0.25, ease: "power3.out" }, V(34.0));
+        drawPath("#s6line", V(34.3), 3.2, "power1.inOut");
+        const li = (id, t) => {
+          tl.from(id, { x: 70, opacity: 0, duration: 0.8, ease }, t);
+          tl.from(id + " .ic", { scale: 0, duration: 0.6, ease: "back.out(2)" }, t + 0.1);
+        };
+        li("#s6l1", V(34.0)); li("#s6l2", V(35.3)); li("#s6l3", V(37.5));
+        starPop("#s6star", V(37.6));
+        tl.set("#s6B", { opacity: 0 }, 29);
+
+        // ---------- S7 (39.6 - 48.2)
+        fadeIn("#s7", 39.6, 0.45);
+        tl.from("#s7 .kicker .bar", { scaleX: 0, duration: 0.6, ease }, V(39.2));
+        tl.from("#s7 .kicker span:last-child", { opacity: 0, x: -20, duration: 0.6, ease }, V(39.2));
+        inWords("#s7 .for", V(39.29), 0.08);
+        inWords("#s7 .big", V(39.65), 0.12, 0.8);
+        tl.from("#s7 .line", { scaleX: 0, duration: 0.8, ease: "power2.inOut" }, V(40.3));
+        tl.from("#s7 .vsep", { scaleY: 0, duration: 0.9, ease: "power2.inOut" }, V(40.3));
+        li("#s7l1", V(40.9)); li("#s7l2", V(44.1)); li("#s7l3", V(45.6));
+        drift("#s7 .split", 39.6, 48.2, 1.03);
+
+        // ---------- S8 (47.8 - 60)
+        fadeIn("#s8", 47.8, 0.45);
+        tl.from("#s8 .kicker .bar", { scaleX: 0, duration: 0.6, ease }, V(47.4));
+        tl.from("#s8 .kicker span:last-child", { opacity: 0, x: -20, duration: 0.6, ease }, V(47.4));
+        inWords("#s8 .for", V(47.46), 0.08);
+        inWords("#s8 .big", V(47.85), 0.12, 0.8);
+        tl.from("#s8 .line", { scaleX: 0, duration: 0.8, ease: "power2.inOut" }, V(48.6));
+        tl.from("#s8 .vsep", { scaleY: 0, duration: 0.9, ease: "power2.inOut" }, V(48.6));
+        li("#s8l1", V(49.4)); li("#s8l2", V(51.4)); li("#s8l3", V(53.4)); li("#s8l4", V(55.4));
+        tl.from("#s8prog", { opacity: 0, y: 20, duration: 0.5, ease }, V(56.7));
+        tl.fromTo("#s8 .prog .fill", { scaleX: 0 }, { scaleX: 1, duration: 1.5, ease: "power2.inOut" }, V(57.0));
+        drift("#s8 .split", 47.8, 60, 1.03);
+
+        // ---------- S9 (59.7 - 63.5) : music rises
+        fadeIn("#s9", 59.7, 0.3);
+        tl.fromTo("#s9 .burst", { scale: 0.2, opacity: 0 }, { scale: 1.15, opacity: 1, duration: 3.4, ease: "power2.out" }, 59.75);
+        document.querySelectorAll("#rings .ring").forEach((r, i) => {
+          tl.fromTo(r, { scale: 0.3, opacity: 0.9 }, { scale: 9, opacity: 0, duration: 2.2, ease: "power2.out" }, V(59.31) + i * 0.75);
+        });
+        parts.forEach((p) => {
+          tl.fromTo(p.d, { x: 0, y: 0, opacity: 0 }, { x: p.dx, y: p.dy, opacity: 1, duration: 2.6, ease: "power2.in" }, 59.8 + p.delay);
+        });
+        inWords("#s9 .a", V(59.31), 0.08);
+        tl.from(words("#s9 .b"), { yPercent: 115, duration: 0.8, ease: "power4.out", stagger: 0.12 }, V(60.75));
+        tl.fromTo("#s9 .b", { scale: 0.9 }, { scale: 1.06, duration: 2.2, ease: "power2.out" }, V(60.9));
+        inWords("#s9 .c", V(61.45), 0.1);
+
+        // ---------- S10 (63.3 - 70.8)
+        fadeIn("#s10", 63.3, 0.35);
+        const kcol = (id, t) => {
+          tl.from(id + " .ic", { scale: 0, rotation: -30, duration: 0.7, ease: "back.out(1.8)" }, t);
+          tl.from(id + " .halo", { opacity: 0, duration: 0.8 }, t + 0.2);
+          tl.from(id + " .t1", { y: 30, opacity: 0, duration: 0.6, ease }, t + 0.1);
+          tl.from(id + " .t2", { y: 40, opacity: 0, duration: 0.7, ease }, t + 0.45);
+        };
+        kcol("#k1", V(62.9)); kcol("#k2", V(65.3)); kcol("#k3", V(66.9));
+        tl.from("#s10 .horizon", { scaleX: 0, duration: 1.6, ease: "power2.inOut" }, V(68.3));
+        tl.from("#s10 .hglow", { opacity: 0, scaleX: 0.4, duration: 1.8, ease: "power2.out" }, V(68.4));
+        tl.fromTo("#s10 .cols", { scale: 1 }, { scale: 1.035, duration: 7.5, ease: "none" }, 63.3);
+
+        // ---------- S11 (70.5 - 75.5)
+        fadeIn("#s11", 70.5, 0.4);
+        inWords("#s11 .a", V(70.16), 0.08);
+        inWords("#s11 .b", V(71.6), 0.07);
+        tl.from(words("#s11 .c"), { yPercent: 115, duration: 0.85, ease: "power4.out", stagger: 0.1 }, V(73.2));
+        tl.from("#s11 .ul", { scaleX: 0, duration: 0.9, ease: "power2.inOut" }, V(73.8));
+        drift("#s11 .inner", 70.5, 75.5, 1.04);
+        // wipe S11 -> logo
+        tl.fromTo("#wipePath", { x: -2400, y: 900 }, { x: 2400, y: -900, duration: 0.95, ease: "power2.inOut" }, 74.7);
+
+        // ---------- S12 LOGO (75.1 - 86)
+        const T = V(75.15); // "ANEORAS"
+        tl.from("#lgNavy", { scaleY: 0, transformOrigin: "50% 100%", duration: 0.7, ease: "power3.out" }, T - 0.55);
+        tl.from("#lgRed", { y: 60, opacity: 0, duration: 0.6, ease: "power3.out" }, T - 0.3);
+        tl.fromTo("#swRect", { attr: { width: 0 } }, { attr: { width: 400 }, duration: 0.7, ease: "power2.inOut" }, T - 0.15);
+        tl.fromTo("#lgStar", { scale: 0, rotation: -120, transformOrigin: "50% 50%" }, { scale: 1.4, rotation: 0, duration: 0.5, ease: "back.out(2.2)" }, T + 0.45);
+        tl.to("#lgStar", { scale: 1, duration: 0.6, ease: "power2.out" }, T + 0.95);
+        tl.fromTo("#flare", { opacity: 0, scale: 0.2 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" }, T + 0.45);
+        tl.to("#flare", { opacity: 0.35, scale: 0.7, duration: 1.6, ease: "power2.out" }, T + 0.95);
+        tl.from("#s12 .word .lt", { opacity: 0, y: 26, duration: 0.6, stagger: 0.07, ease }, T - 0.05);
+        tl.from("#tg1", { opacity: 0, y: 14, duration: 0.7, ease }, V(76.25));
+        tl.from("#tg2", { opacity: 0, y: 14, duration: 0.7, ease }, V(77.6));
+        tl.to("#logo", { y: -70, duration: 1.2, ease: "power2.inOut" }, V(78.7));
+        tl.to("#flare", { y: -70, duration: 1.2, ease: "power2.inOut" }, V(78.7));
+        inWords("#s12 .end", V(79.4), 0.09, 0.8);
+        tl.from("#s12 .endline", { scaleX: 0, duration: 1.0, ease: "power2.inOut" }, V(80.3));
+        tl.fromTo("#s12 .icon", { scale: 0.96 }, { scale: 1.02, duration: 10, ease: "none", transformOrigin: "50% 60%" }, 75.1);
+        // gentle fade to brand navy at the very end
+        tl.set({}, {}, 86);
+
+        window.__timelines = window.__timelines || {};
+        window.__timelines["main"] = tl;
+        tl.seek(0);
+      })();
+    </script>
+  </body>
+</html>
